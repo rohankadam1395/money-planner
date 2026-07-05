@@ -74,7 +74,7 @@ User can view previously uploaded statements and re-upload the same statement. S
 - **FR-005**: System MUST display a preview of extracted transactions to user before confirming import
 - **FR-006**: System MUST persist imported transactions to database with transaction date, merchant, amount, type (debit/credit), balance, and description
 - **FR-007**: System MUST detect and prevent duplicate imports (same statement file or same date range from same bank)
-- **FR-008**: System MUST support transactions in multiple currencies [NEEDS CLARIFICATION: should system convert to single currency or store in original currency?]
+- **FR-008**: System MUST store transaction currency in the database for future multi-currency support. For MVP Phase 1, system assumes all transactions are in Indian Rupees (INR); currency field defaults to "INR" on import. Future phases (US2+) will add currency conversion and multi-currency display.
 - **FR-009**: System MUST handle statements with missing optional fields gracefully (e.g., balance column not always present in all bank formats)
 - **FR-010**: System MUST log all import operations with file name, row count, success/failure status, timestamp
 
@@ -99,7 +99,7 @@ User can view previously uploaded statements and re-upload the same statement. S
 - Bank statements follow standard CSV/Excel/PDF layouts used by major Indian banks (date in column A, merchant in column B, amount in column C, etc.)
 - User has stable internet connectivity for file upload (no multi-part resume required for MVP)
 - File size limit: statements under 50MB (typical bank exports are 1-5MB for 12 months)
-- Transactions are assumed to be in Indian Rupees (INR) unless explicitly stated in statement header [partially clarified in FR-008]
+- Transactions are stored with currency field; MVP assumes Indian Rupees (INR) unless explicitly stated in statement header. Multi-currency conversion deferred to future phases (US2+).
 - PDF parsing will use standard library (e.g., PyPDF2, pdfplumber in Python or equivalent in Go); no OCR required for machine-readable PDFs
 - Duplicate detection scope: within same bank account, past 12 months of transactions
 - User authentication already exists (out of scope for this feature; statement import assumes authenticated user context)

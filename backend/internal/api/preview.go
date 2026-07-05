@@ -43,14 +43,8 @@ func (h *PreviewHandler) Preview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Fetch statement from database and verify ownership
-	// For now, return placeholder preview response
-
-	// In a production system, this would:
-	// 1. Fetch the statement record from DB
-	// 2. Check if it belongs to the authenticated user
-	// 3. If status is PENDING, fetch cached extracted transactions
-	// 4. If status is SUCCESS, fetch persisted transactions
-	// 5. Return the preview response
+	// For MVP, we don't have persistence yet, so return placeholder
+	// Once database is wired, fetch actual statement data
 
 	previewResp := &statement.PreviewResponse{
 		Transactions: []*statement.Transaction{},
@@ -60,7 +54,7 @@ func (h *PreviewHandler) Preview(w http.ResponseWriter, r *http.Request) {
 			InvalidTransactions: 0,
 			Errors:              []map[string]interface{}{},
 		},
-		Status:  "PROCESSING",
+		Status:  "PENDING",
 		Message: "Statement is being processed. Check back in a few seconds.",
 	}
 

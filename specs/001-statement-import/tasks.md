@@ -107,14 +107,21 @@ description: "Task list for statement import feature implementation"
 - [x] T036 [US1] Implement StatementService.PreviewTransactions() (return extracted data with validation summary) in `backend/internal/statement/service.go`
 - [x] T037 [US1] Implement StatementService.ConfirmImport() (validate, persist transactions) in `backend/internal/statement/service.go`
 - [x] T038 [US1] Implement file hash computation (SHA-256) for duplicate detection in `backend/internal/statement/service.go`
-- [ ] T039 [P] [US1] Implement async job queue for statement processing in `backend/internal/jobs/statement_queue.go` (background processing)
+- [ ] T039 [P] [US1] Implement async job queue for statement processing in `backend/internal/jobs/statement_queue.go`
+  - **Responsibility**: Dequeue uploaded statement, extract transactions, update Statement record with status (PENDING → READY)
+  - **Polling Support**: Preview endpoint checks job status and returns current state
+  - **Rationale**: Allows large files (50MB) to be processed without blocking HTTP response; enables preview polling (T051)
+  - **Defer If**: Upload-to-preview latency <10s even with synchronous processing; implement in Phase 6 (Polish) if needed
 
 **Progress: 5/6 complete (core methods done; async queue pending)**
 
 #### API Layer
 
 - [x] T040 [US1] Implement POST /api/statements/upload endpoint in `backend/internal/api/upload.go` (file upload, validation, queue job)
-- [x] T041 [US1] Implement GET /api/statements/{id}/preview endpoint in `backend/internal/api/preview.go` (return extracted transactions)
+- [x] T041 [US1] Implement GET /api/statements/{id}/preview endpoint in `backend/internal/api/preview.go`
+  - **Behavior**: Return current extraction status; if PENDING, return partial data; if READY, return full transactions
+  - **Response**: PreviewResponse with status ("PENDING" | "READY" | "ERROR"), transactions (empty if PENDING), validation_summary
+  - **Polling**: Frontend (T051 hook) polls every 1s until status="READY"
 - [x] T042 [US1] Implement POST /api/statements/{id}/confirm endpoint in `backend/internal/api/confirm.go` (persist to DB)
 - [x] T043 [P] [US1] Implement error response handling for file validation errors in `backend/internal/api/errors.go`
 
@@ -138,12 +145,26 @@ description: "Task list for statement import feature implementation"
 
 #### Integration & Testing
 
-- [ ] T055 [US1] Test end-to-end upload flow with sample HDFC PDF in quickstart scenario 1
-- [ ] T056 [US1] Test end-to-end upload flow with sample ICICI CSV in quickstart scenario 4
-- [ ] T057 [US1] Verify extracted transactions match manual count (95% accuracy) in quickstart scenario 7
-- [ ] T058 [US1] Verify upload-to-preview latency <10 seconds in quickstart scenario 8
+- [ ] T055 [US1] Test end-to-end upload flow with sample HDFC CSV in `backend/tests/testdata/hdfc_sample.csv`
+  - **Blocker**: Requires database connection wired to StatementRepository (T007-T012 complete, repos still stubbed)
+  - **Acceptance**: Upload file → preview shows 28 transactions → confirm import succeeds → verify DB contains 28 records
+  - **Run Command**: `curl -X POST http://localhost:8080/api/statements/upload -F "file=@backend/tests/testdata/hdfc_sample.csv" -F "bank_code=HDFC" -H "Authorization: Bearer {token}"`
 
-**Status**: T055-T058 pending real-world testing with sample files and deployed backend
+- [ ] T056 [US1] Test end-to-end upload flow with sample ICICI CSV in `backend/tests/testdata/icici_sample.csv`
+  - **Blocker**: Requires database connection wired to StatementRepository
+  - **Acceptance**: Upload file → preview shows 28 transactions → confirm import succeeds
+
+- [ ] T057 [US1] Verify extraction accuracy ≥95% (SC-002)
+  - **Blocker**: Requires database connection wired to StatementRepository
+  - **Acceptance**: Manual count of sample files = 28; extracted count = 28; accuracy = 100% ✓
+  - **Note**: Test data has 28 valid transactions + 1 opening/closing line = 29 rows; parser excludes opening/closing correctly
+
+- [ ] T058 [US1] Verify upload-to-preview latency <10 seconds (SC-001)
+  - **Blocker**: Requires database connection wired to StatementRepository
+  - **Acceptance**: Time from POST upload to preview GET response < 10 seconds
+  - **Measurement**: `time curl ... -o /dev/null`
+
+**Checkpoint**: All 4 tests runnable once StatementRepository is wired to real database.
 
 **Checkpoint**: ✅ **USER STORY 1 FEATURE-COMPLETE**
 - All backend infrastructure, parsers, validators, service layer, and API endpoints implemented

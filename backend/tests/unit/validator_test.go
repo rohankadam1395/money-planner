@@ -245,7 +245,7 @@ func TestValidateMerchant(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateMerchant(tt.merchant)
+			err := statement.ValidateMerchant(tt.merchant)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -271,7 +271,7 @@ func TestValidateAmount(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateAmount(tt.amount)
+			err := statement.ValidateAmount(tt.amount)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -297,7 +297,7 @@ func TestValidateType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateType(tt.txnType)
+			err := statement.ValidateType(tt.txnType)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -325,7 +325,7 @@ func TestValidateCurrency(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateCurrency(tt.currency)
+			err := statement.ValidateCurrency(tt.currency)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

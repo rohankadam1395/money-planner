@@ -30,7 +30,7 @@ func ValidateTransaction(t *Transaction, periodStart, periodEnd time.Time) *Tran
 		Errors: []ValidationError{},
 	}
 
-	if err := validateTransactionDate(t.TransactionDate, periodStart, periodEnd); err != nil {
+	if err := ValidateTransactionDate(t.TransactionDate, periodStart, periodEnd); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
 			Field:   "transaction_date",
@@ -38,7 +38,7 @@ func ValidateTransaction(t *Transaction, periodStart, periodEnd time.Time) *Tran
 		})
 	}
 
-	if err := validateMerchant(t.Merchant); err != nil {
+	if err := ValidateMerchant(t.Merchant); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
 			Field:   "merchant",
@@ -46,7 +46,7 @@ func ValidateTransaction(t *Transaction, periodStart, periodEnd time.Time) *Tran
 		})
 	}
 
-	if err := validateAmount(t.Amount); err != nil {
+	if err := ValidateAmount(t.Amount); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
 			Field:   "amount",
@@ -54,7 +54,7 @@ func ValidateTransaction(t *Transaction, periodStart, periodEnd time.Time) *Tran
 		})
 	}
 
-	if err := validateType(t.Type); err != nil {
+	if err := ValidateType(t.Type); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
 			Field:   "type",
@@ -62,7 +62,7 @@ func ValidateTransaction(t *Transaction, periodStart, periodEnd time.Time) *Tran
 		})
 	}
 
-	if err := validateCurrency(t.Currency); err != nil {
+	if err := ValidateCurrency(t.Currency); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
 			Field:   "currency",
@@ -70,7 +70,7 @@ func ValidateTransaction(t *Transaction, periodStart, periodEnd time.Time) *Tran
 		})
 	}
 
-	if err := validateAccountHash(t.AccountNumberHash); err != nil {
+	if err := ValidateAccountHash(t.AccountNumberHash); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
 			Field:   "account_number_hash",
@@ -81,7 +81,7 @@ func ValidateTransaction(t *Transaction, periodStart, periodEnd time.Time) *Tran
 	return result
 }
 
-func validateTransactionDate(date time.Time, periodStart, periodEnd time.Time) error {
+func ValidateTransactionDate(date time.Time, periodStart, periodEnd time.Time) error {
 	if date.Before(periodStart) || date.After(periodEnd) {
 		return fmt.Errorf("transaction date %s is outside statement period [%s, %s]",
 			date.Format("2006-01-02"), periodStart.Format("2006-01-02"), periodEnd.Format("2006-01-02"))
@@ -89,7 +89,7 @@ func validateTransactionDate(date time.Time, periodStart, periodEnd time.Time) e
 	return nil
 }
 
-func validateMerchant(merchant string) error {
+func ValidateMerchant(merchant string) error {
 	merchant = strings.TrimSpace(merchant)
 	if merchant == "" {
 		return fmt.Errorf("merchant cannot be empty")
@@ -110,7 +110,7 @@ func validateMerchant(merchant string) error {
 	return nil
 }
 
-func validateAmount(amount float64) error {
+func ValidateAmount(amount float64) error {
 	if amount <= 0 {
 		return fmt.Errorf("amount must be positive, got %f", amount)
 	}
@@ -125,7 +125,7 @@ func validateAmount(amount float64) error {
 	return nil
 }
 
-func validateType(txnType string) error {
+func ValidateType(txnType string) error {
 	txnType = strings.ToUpper(strings.TrimSpace(txnType))
 	if txnType != "DEBIT" && txnType != "CREDIT" {
 		return fmt.Errorf("type must be DEBIT or CREDIT, got %s", txnType)
@@ -133,7 +133,7 @@ func validateType(txnType string) error {
 	return nil
 }
 
-func validateCurrency(currency string) error {
+func ValidateCurrency(currency string) error {
 	currency = strings.ToUpper(strings.TrimSpace(currency))
 	if len(currency) != 3 {
 		return fmt.Errorf("currency must be a 3-character ISO code, got %s", currency)
@@ -147,7 +147,7 @@ func validateCurrency(currency string) error {
 	return nil
 }
 
-func validateAccountHash(hash string) error {
+func ValidateAccountHash(hash string) error {
 	if len(hash) != MaxAccountHashLen {
 		return fmt.Errorf("account number hash must be %d characters (SHA-256 hex), got %d", MaxAccountHashLen, len(hash))
 	}

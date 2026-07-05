@@ -72,9 +72,11 @@ description: "Task list for statement import feature implementation"
 - [x] T016 [P] [US1] Contract test for upload endpoint (202 Accepted, PENDING status) in `backend/tests/contract/upload_test.go`
 - [x] T017 [P] [US1] Contract test for preview endpoint (transactions array, validation_summary) in `backend/tests/contract/preview_test.go`
 - [x] T018 [P] [US1] Contract test for confirm endpoint (persist transactions, SUCCESS status) in `backend/tests/contract/confirm_test.go`
-- [ ] T019 [P] [US1] Integration test for PDF parsing (extract HDFC statement format) in `backend/tests/integration/pdf_parser_test.go`
-- [ ] T020 [P] [US1] Integration test for CSV parsing (extract standard bank CSV) in `backend/tests/integration/csv_parser_test.go`
+- [x] T019 [P] [US1] Integration test for PDF parsing (extract HDFC statement format) in `backend/tests/integration/pdf_parser_test.go`
+- [x] T020 [P] [US1] Integration test for CSV parsing (extract standard bank CSV) in `backend/tests/integration/csv_parser_test.go`
 - [x] T021 [P] [US1] Unit tests for transaction validator (date format, amount, merchant) in `backend/tests/unit/validator_test.go`
+
+**Progress: 6/6 tests complete ✓**
 
 ### Implementation for User Story 1
 
@@ -88,22 +90,26 @@ description: "Task list for statement import feature implementation"
 
 #### Parsing & Validation Layer
 
-- [ ] T027 [P] [US1] Implement PDF parser using `pdfplumber` library in `backend/internal/statement/pdf_parser.go` (extract table structure)
-- [ ] T028 [P] [US1] Implement CSV parser using `gocsv` in `backend/internal/statement/csv_parser.go`
-- [ ] T029 [P] [US1] Implement Excel parser using `excelize` in `backend/internal/statement/excel_parser.go`
-- [ ] T030 [P] [US1] Implement transaction validator in `backend/internal/statement/validator.go` (date, amount, merchant, type validation)
-- [ ] T031 [US1] Implement HDFC format configuration in `backend/internal/statement/formats/hdfc.go` (column mapping)
-- [ ] T032 [US1] Implement ICICI format configuration in `backend/internal/statement/formats/icici.go` (column mapping)
-- [ ] T033 [P] [US1] Implement statement metadata extractor (period_start, period_end) in `backend/internal/statement/metadata.go`
+- [x] T027 [P] [US1] Implement PDF parser using `pdfplumber` library in `backend/internal/statement/pdf_parser.go` (extract table structure)
+- [x] T028 [P] [US1] Implement CSV parser using `gocsv` in `backend/internal/statement/csv_parser.go`
+- [x] T029 [P] [US1] Implement Excel parser using `excelize` in `backend/internal/statement/excel_parser.go`
+- [x] T030 [P] [US1] Implement transaction validator in `backend/internal/statement/validator.go` (date, amount, merchant, type validation)
+- [x] T031 [US1] Implement HDFC format configuration in `backend/internal/statement/formats/hdfc.go` (column mapping)
+- [x] T032 [US1] Implement ICICI format configuration in `backend/internal/statement/formats/icici.go` (column mapping)
+- [x] T033 [P] [US1] Implement statement metadata extractor (period_start, period_end) in `backend/internal/statement/metadata.go`
+
+**Progress: 7/7 complete ✓ (all parsers, validators, and format configs done)**
 
 #### Service Layer
 
-- [ ] T034 [US1] Implement StatementService.Upload() (validate file, create Statement record) in `backend/internal/statement/service.go`
-- [ ] T035 [US1] Implement StatementService.ExtractTransactions() (parse file, extract data) in `backend/internal/statement/service.go`
-- [ ] T036 [US1] Implement StatementService.PreviewTransactions() (return extracted data with validation summary) in `backend/internal/statement/service.go`
-- [ ] T037 [US1] Implement StatementService.ConfirmImport() (validate, persist transactions) in `backend/internal/statement/service.go`
-- [ ] T038 [US1] Implement file hash computation (SHA-256) for duplicate detection in `backend/internal/statement/service.go`
+- [x] T034 [US1] Implement StatementService.Upload() (validate file, create Statement record) in `backend/internal/statement/service.go`
+- [x] T035 [US1] Implement StatementService.ExtractTransactions() (parse file, extract data) in `backend/internal/statement/service.go`
+- [x] T036 [US1] Implement StatementService.PreviewTransactions() (return extracted data with validation summary) in `backend/internal/statement/service.go`
+- [x] T037 [US1] Implement StatementService.ConfirmImport() (validate, persist transactions) in `backend/internal/statement/service.go`
+- [x] T038 [US1] Implement file hash computation (SHA-256) for duplicate detection in `backend/internal/statement/service.go`
 - [ ] T039 [P] [US1] Implement async job queue for statement processing in `backend/internal/jobs/statement_queue.go` (background processing)
+
+**Progress: 5/6 complete (core methods done; async queue pending)**
 
 #### API Layer
 
@@ -111,6 +117,8 @@ description: "Task list for statement import feature implementation"
 - [x] T041 [US1] Implement GET /api/statements/{id}/preview endpoint in `backend/internal/api/preview.go` (return extracted transactions)
 - [x] T042 [US1] Implement POST /api/statements/{id}/confirm endpoint in `backend/internal/api/confirm.go` (persist to DB)
 - [x] T043 [P] [US1] Implement error response handling for file validation errors in `backend/internal/api/errors.go`
+
+**Progress: 4/4 complete ✓**
 
 #### Frontend
 
@@ -125,6 +133,8 @@ description: "Task list for statement import feature implementation"
 - [ ] T052 [US1] Implement confirm import handler in `frontend/src/pages/statements/PreviewPage.tsx` (POST /api/statements/{id}/confirm)
 - [ ] T053 [P] [US1] Add upload progress indicator component in `frontend/src/components/UploadProgress.tsx`
 - [ ] T054 [US1] Integrate upload flow: UploadPage → Preview → Confirmation in `frontend/src/pages/statements/index.tsx`
+
+**Progress: 3/11 complete (core UI done; preview flow pending)**
 
 #### Integration & Testing
 

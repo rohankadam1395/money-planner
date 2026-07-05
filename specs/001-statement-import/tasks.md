@@ -48,7 +48,7 @@ description: "Task list for statement import feature implementation"
 - [x] T009 [P] Implement JWT authentication middleware in `backend/internal/api/middleware/auth.go`
 - [x] T010 [P] Implement error handling and logging middleware in `backend/internal/api/middleware/errors.go`
 - [x] T011 [P] Set up HTTP router and base API structure in `backend/cmd/statement-import-api/main.go`
-- [ ] T012 Create database query builder/ORM config using `sqlc` in `backend/internal/db/queries/`
+- [x] T012 Create database query builder/ORM config using `sqlc` in `backend/internal/db/queries/`
 - [x] T013 [P] Implement transaction validator helper functions in `backend/internal/statement/validator.go` (reusable across stories)
 - [x] T014 [P] Set up React API client base service in `frontend/src/services/api.ts`
 - [x] T015 [P] Create React auth context and JWT token management in `frontend/src/contexts/AuthContext.tsx`
@@ -83,8 +83,8 @@ description: "Task list for statement import feature implementation"
 - [x] T022 [P] [US1] Create Transaction model and repository in `backend/internal/statement/models.go`
 - [x] T023 [P] [US1] Create Statement model and repository in `backend/internal/statement/models.go`
 - [x] T024 [P] [US1] Create ImportJob model and repository in `backend/internal/statement/models.go`
-- [ ] T025 [US1] Implement sqlc queries for transactions (insert, select by statement) in `backend/internal/db/queries/transactions.sql`
-- [ ] T026 [US1] Implement sqlc queries for statements (insert, select by user) in `backend/internal/db/queries/statements.sql`
+- [x] T025 [US1] Implement sqlc queries for transactions (insert, select by statement) in `backend/internal/db/queries/transactions.sql`
+- [x] T026 [US1] Implement sqlc queries for statements (insert, select by user) in `backend/internal/db/queries/statements.sql`
 
 #### Parsing & Validation Layer
 

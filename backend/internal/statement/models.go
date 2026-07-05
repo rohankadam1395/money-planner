@@ -78,8 +78,12 @@ type TransactionRepository struct {
 
 func (tr *TransactionRepository) Create(txn *Transaction) error {
 	// Implementation would use sqlc-generated code
-	txn.TransactionID = uuid.New()
-	txn.CreatedAt = time.Now()
+	if txn.TransactionID == "" {
+		txn.TransactionID = uuid.New().String()
+	}
+	if txn.CreatedAt.IsZero() {
+		txn.CreatedAt = time.Now()
+	}
 	txn.UpdatedAt = time.Now()
 	return nil
 }
@@ -87,8 +91,12 @@ func (tr *TransactionRepository) Create(txn *Transaction) error {
 func (tr *TransactionRepository) CreateBatch(txns []*Transaction) error {
 	// Implementation would use sqlc-generated code for batch insert
 	for _, txn := range txns {
-		txn.TransactionID = uuid.New()
-		txn.CreatedAt = time.Now()
+		if txn.TransactionID == "" {
+			txn.TransactionID = uuid.New().String()
+		}
+		if txn.CreatedAt.IsZero() {
+			txn.CreatedAt = time.Now()
+		}
 		txn.UpdatedAt = time.Now()
 	}
 	return nil

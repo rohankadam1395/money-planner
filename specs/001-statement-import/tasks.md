@@ -125,16 +125,16 @@ description: "Task list for statement import feature implementation"
 - [x] T044 [P] [US1] Create file upload component (drag-and-drop) in `frontend/src/components/FileDropZone.tsx`
 - [x] T045 [P] [US1] Create bank code selector component in `frontend/src/components/BankSelector.tsx`
 - [x] T046 [US1] Create upload form page in `frontend/src/pages/statements/UploadPage.tsx` (combines file drop, bank selector, submit)
-- [ ] T047 [US1] Implement file upload API call in `frontend/src/services/statementApi.ts` (POST /api/statements/upload)
-- [ ] T048 [P] [US1] Create transaction preview table component in `frontend/src/components/TransactionPreview.tsx` (paginated grid)
-- [ ] T049 [P] [US1] Create validation summary component in `frontend/src/components/ValidationSummary.tsx` (error count, error details)
-- [ ] T050 [US1] Create preview page in `frontend/src/pages/statements/PreviewPage.tsx` (shows extracted transactions, confirm/cancel buttons)
-- [ ] T051 [US1] Implement preview data fetch and polling in `frontend/src/hooks/useStatementPreview.ts` (GET /api/statements/{id}/preview)
-- [ ] T052 [US1] Implement confirm import handler in `frontend/src/pages/statements/PreviewPage.tsx` (POST /api/statements/{id}/confirm)
+- [x] T047 [US1] Implement file upload API call in `frontend/src/services/statementApi.ts` (POST /api/statements/upload)
+- [x] T048 [P] [US1] Create transaction preview table component in `frontend/src/components/TransactionPreview.tsx` (paginated grid)
+- [x] T049 [P] [US1] Create validation summary component in `frontend/src/components/ValidationSummary.tsx` (error count, error details)
+- [x] T050 [US1] Create preview page in `frontend/src/pages/statements/PreviewPage.tsx` (shows extracted transactions, confirm/cancel buttons)
+- [x] T051 [US1] Implement preview data fetch and polling in `frontend/src/hooks/useStatementPreview.ts` (GET /api/statements/{id}/preview)
+- [x] T052 [US1] Implement confirm import handler in `frontend/src/pages/statements/PreviewPage.tsx` (POST /api/statements/{id}/confirm)
 - [ ] T053 [P] [US1] Add upload progress indicator component in `frontend/src/components/UploadProgress.tsx`
 - [ ] T054 [US1] Integrate upload flow: UploadPage → Preview → Confirmation in `frontend/src/pages/statements/index.tsx`
 
-**Progress: 3/11 complete (core UI done; preview flow pending)**
+**Progress: 9/11 complete (preview flow done; progress component and routing pending)**
 
 #### Integration & Testing
 

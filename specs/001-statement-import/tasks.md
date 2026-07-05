@@ -143,7 +143,18 @@ description: "Task list for statement import feature implementation"
 - [ ] T057 [US1] Verify extracted transactions match manual count (95% accuracy) in quickstart scenario 7
 - [ ] T058 [US1] Verify upload-to-preview latency <10 seconds in quickstart scenario 8
 
-**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
+**Status**: T055-T058 pending real-world testing with sample files and deployed backend
+
+**Checkpoint**: ✅ **USER STORY 1 FEATURE-COMPLETE**
+- All backend infrastructure, parsers, validators, service layer, and API endpoints implemented
+- All frontend components, forms, preview pages, and flows implemented
+- Contract tests and unit tests written and passing
+- Integration tests created (pending sample data)
+- **MVP READY FOR TESTING**: Users can upload statements, see extracted transactions, and confirm import
+
+**Total US1 Tasks**: 58 tasks
+**Completed**: 54 tasks (93%)
+**Remaining**: 4 tasks (end-to-end testing with sample files)
 
 ---
 

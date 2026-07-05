@@ -28,12 +28,12 @@ description: "Task list for statement import feature implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize Go backend module and dependencies (`backend/go.mod`)
-- [ ] T002 Initialize React/Next.js frontend project (`frontend/package.json`)
-- [ ] T003 [P] Set up backend project structure: `backend/cmd/`, `backend/internal/`, `backend/tests/`
-- [ ] T004 [P] Set up frontend project structure: `frontend/src/pages/statements/`, `frontend/src/components/`, `frontend/src/services/`
-- [ ] T005 [P] Configure linting and formatting (Go: `gofmt`, `golangci-lint`; Frontend: `eslint`, `prettier`)
-- [ ] T006 [P] Set up CI/CD pipeline (GitHub Actions for tests, linting, type-checking)
+- [x] T001 Initialize Go backend module and dependencies (`backend/go.mod`)
+- [x] T002 Initialize React/Next.js frontend project (`frontend/package.json`)
+- [x] T003 [P] Set up backend project structure: `backend/cmd/`, `backend/internal/`, `backend/tests/`
+- [x] T004 [P] Set up frontend project structure: `frontend/src/pages/statements/`, `frontend/src/components/`, `frontend/src/services/`
+- [x] T005 [P] Configure linting and formatting (Go: `gofmt`, `golangci-lint`; Frontend: `eslint`, `prettier`)
+- [x] T006 [P] Set up CI/CD pipeline (GitHub Actions for tests, linting, type-checking)
 
 ---
 
@@ -43,15 +43,15 @@ description: "Task list for statement import feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Create PostgreSQL database schema with `statements`, `transactions`, `import_jobs` tables (from data-model.md)
-- [ ] T008 Create database migration framework and migration runner (`backend/internal/db/migrations/`)
-- [ ] T009 [P] Implement JWT authentication middleware in `backend/internal/api/middleware/auth.go`
-- [ ] T010 [P] Implement error handling and logging middleware in `backend/internal/api/middleware/errors.go`
-- [ ] T011 [P] Set up HTTP router and base API structure in `backend/cmd/statement-import-api/main.go`
+- [x] T007 Create PostgreSQL database schema with `statements`, `transactions`, `import_jobs` tables (from data-model.md)
+- [x] T008 Create database migration framework and migration runner (`backend/internal/db/migrations/`)
+- [x] T009 [P] Implement JWT authentication middleware in `backend/internal/api/middleware/auth.go`
+- [x] T010 [P] Implement error handling and logging middleware in `backend/internal/api/middleware/errors.go`
+- [x] T011 [P] Set up HTTP router and base API structure in `backend/cmd/statement-import-api/main.go`
 - [ ] T012 Create database query builder/ORM config using `sqlc` in `backend/internal/db/queries/`
-- [ ] T013 [P] Implement transaction validator helper functions in `backend/internal/statement/validator.go` (reusable across stories)
-- [ ] T014 [P] Set up React API client base service in `frontend/src/services/api.ts`
-- [ ] T015 [P] Create React auth context and JWT token management in `frontend/src/contexts/AuthContext.tsx`
+- [x] T013 [P] Implement transaction validator helper functions in `backend/internal/statement/validator.go` (reusable across stories)
+- [x] T014 [P] Set up React API client base service in `frontend/src/services/api.ts`
+- [x] T015 [P] Create React auth context and JWT token management in `frontend/src/contexts/AuthContext.tsx`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

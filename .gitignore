@@ -24,9 +24,31 @@ profile.cov
 go.work
 go.work.sum
 
+# Node.js / Frontend
+node_modules/
+dist/
+build/
+*.log
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+.next/
+out/
+
 # env file
 .env
+.env.local
+.env.*.local
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,22 @@
+run:
+  deadline: 5m
+  skip-dirs:
+    - vendor
+    - node_modules
+
+linters:
+  enable:
+    - errcheck
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - vet
+    - gofmt
+    - goimports
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck

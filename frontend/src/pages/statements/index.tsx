@@ -3,11 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import UploadPage from './UploadPage';
-import PreviewPage from './PreviewPage';
 import { UploadProgress } from '@/components/UploadProgress';
-import { statementApi } from '@/services/statementApi';
-
-type StatementsPageView = 'upload' | 'preview' | 'history';
 
 interface UploadState {
   fileName?: string;
@@ -19,7 +15,6 @@ interface UploadState {
 
 export default function StatementsPage() {
   const router = useRouter();
-  const [currentView, setCurrentView] = useState<StatementsPageView>('upload');
   const [uploadState, setUploadState] = useState<UploadState>({
     progress: 0,
     status: 'idle',
@@ -31,13 +26,6 @@ export default function StatementsPage() {
       progress: 10,
       status: 'uploading',
     });
-  };
-
-  const handleUploadProgress = (progress: number) => {
-    setUploadState((prev) => ({
-      ...prev,
-      progress: Math.min(progress, 90), // Cap at 90% until processing complete
-    }));
   };
 
   const handleUploadSuccess = async (statementId: string) => {
@@ -80,26 +68,16 @@ export default function StatementsPage() {
     });
   };
 
-  // Render based on current view
-  if (currentView === 'upload') {
-    return (
-      <>
-        <UploadPage onUploadStart={handleUploadStart} onUploadSuccess={handleUploadSuccess} onUploadError={handleUploadError} />
-        <UploadProgress
-          isLoading={uploadState.status !== 'idle'}
-          fileName={uploadState.fileName}
-          progress={uploadState.progress}
-          status={uploadState.status as 'uploading' | 'processing' | 'complete' | 'error'}
-          message={uploadState.errorMessage || (uploadState.status === 'processing' ? 'Extracting transactions from your statement...' : undefined)}
-        />
-      </>
-    );
-  }
-
-  if (currentView === 'preview') {
-    return <PreviewPage />;
-  }
-
-  // Default: upload
-  return <UploadPage onUploadStart={handleUploadStart} onUploadSuccess={handleUploadSuccess} onUploadError={handleUploadError} />;
+  return (
+    <>
+      <UploadPage onUploadStart={handleUploadStart} onUploadSuccess={handleUploadSuccess} onUploadError={handleUploadError} />
+      <UploadProgress
+        isLoading={uploadState.status !== 'idle'}
+        fileName={uploadState.fileName}
+        progress={uploadState.progress}
+        status={uploadState.status as 'uploading' | 'processing' | 'complete' | 'error'}
+        message={uploadState.errorMessage || (uploadState.status === 'processing' ? 'Extracting transactions from your statement...' : undefined)}
+      />
+    </>
+  );
 }

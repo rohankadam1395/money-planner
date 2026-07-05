@@ -107,16 +107,16 @@ description: "Task list for statement import feature implementation"
 
 #### API Layer
 
-- [ ] T040 [US1] Implement POST /api/statements/upload endpoint in `backend/internal/api/upload.go` (file upload, validation, queue job)
-- [ ] T041 [US1] Implement GET /api/statements/{id}/preview endpoint in `backend/internal/api/preview.go` (return extracted transactions)
-- [ ] T042 [US1] Implement POST /api/statements/{id}/confirm endpoint in `backend/internal/api/confirm.go` (persist to DB)
-- [ ] T043 [P] [US1] Implement error response handling for file validation errors in `backend/internal/api/errors.go`
+- [x] T040 [US1] Implement POST /api/statements/upload endpoint in `backend/internal/api/upload.go` (file upload, validation, queue job)
+- [x] T041 [US1] Implement GET /api/statements/{id}/preview endpoint in `backend/internal/api/preview.go` (return extracted transactions)
+- [x] T042 [US1] Implement POST /api/statements/{id}/confirm endpoint in `backend/internal/api/confirm.go` (persist to DB)
+- [x] T043 [P] [US1] Implement error response handling for file validation errors in `backend/internal/api/errors.go`
 
 #### Frontend
 
-- [ ] T044 [P] [US1] Create file upload component (drag-and-drop) in `frontend/src/components/FileDropZone.tsx`
-- [ ] T045 [P] [US1] Create bank code selector component in `frontend/src/components/BankSelector.tsx`
-- [ ] T046 [US1] Create upload form page in `frontend/src/pages/statements/UploadPage.tsx` (combines file drop, bank selector, submit)
+- [x] T044 [P] [US1] Create file upload component (drag-and-drop) in `frontend/src/components/FileDropZone.tsx`
+- [x] T045 [P] [US1] Create bank code selector component in `frontend/src/components/BankSelector.tsx`
+- [x] T046 [US1] Create upload form page in `frontend/src/pages/statements/UploadPage.tsx` (combines file drop, bank selector, submit)
 - [ ] T047 [US1] Implement file upload API call in `frontend/src/services/statementApi.ts` (POST /api/statements/upload)
 - [ ] T048 [P] [US1] Create transaction preview table component in `frontend/src/components/TransactionPreview.tsx` (paginated grid)
 - [ ] T049 [P] [US1] Create validation summary component in `frontend/src/components/ValidationSummary.tsx` (error count, error details)

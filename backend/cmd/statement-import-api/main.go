@@ -10,7 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	dbpkg "money-planner/backend/internal/db"
+	"money-planner/backend/internal/api"
 	apimiddleware "money-planner/backend/internal/api/middleware"
+	"money-planner/backend/internal/statement"
 )
 
 func main() {
@@ -55,15 +57,17 @@ func main() {
 		fmt.Fprintf(w, `{"status":"ok"}`)
 	})
 
+	// Initialize statement service (TODO: inject database connection)
+	// For now, create with nil repositories as placeholders
+	stmtService := &statement.StatementService{}
+
 	// Protected API routes
 	router.Route("/api", func(r chi.Router) {
 		authMiddleware := apimiddleware.NewAuthMiddleware(jwtSecret)
 		r.Use(authMiddleware.Handler)
 
-		// Statement routes will be added here
-		r.Route("/statements", func(sr chi.Router) {
-			// Routes for upload, preview, confirm endpoints will be registered here
-		})
+		// Setup statement routes
+		api.SetupRoutes(r, stmtService)
 	})
 
 	// Start server

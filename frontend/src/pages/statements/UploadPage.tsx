@@ -4,9 +4,19 @@ import React, { useState } from 'react';
 import { FileDropZone } from '@/components/FileDropZone';
 import { BankSelector } from '@/components/BankSelector';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiClient } from '@/services/api';
+import { statementApi } from '@/services/statementApi';
 
-export default function UploadPage() {
+interface UploadPageProps {
+  onUploadStart?: (fileName: string) => void;
+  onUploadSuccess?: (statementId: string) => void;
+  onUploadError?: (errorMessage: string) => void;
+}
+
+export default function UploadPage({
+  onUploadStart,
+  onUploadSuccess,
+  onUploadError,
+}: UploadPageProps) {
   const { isAuthenticated } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedBank, setSelectedBank] = useState<string>('HDFC');
@@ -41,37 +51,31 @@ export default function UploadPage() {
     setError(null);
 
     try {
-      // Create FormData for multipart upload
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('bank_code', selectedBank);
+      // Notify parent of upload start
+      onUploadStart?.(selectedFile.name);
 
-      // Upload the file
-      const response = await apiClient.post('/statements/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      // Upload the file using the statement API service
+      const response = await statementApi.uploadStatement({
+        file: selectedFile,
+        bank_code: selectedBank,
       });
 
-      if (response.status === 202 || response.status === 200) {
+      if (response.statement_id) {
         setSuccess(
-          `Statement uploaded successfully! Statement ID: ${response.data.statement_id}`
+          `Statement uploaded successfully! Statement ID: ${response.statement_id}`
         );
         setSelectedFile(null);
         setSelectedBank('HDFC');
 
-        // Optionally redirect to preview page
-        // setTimeout(() => {
-        //   router.push(`/statements/${response.data.statement_id}/preview`);
-        // }, 2000);
+        // Notify parent of successful upload
+        onUploadSuccess?.(response.statement_id);
       }
     } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.error ||
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to upload statement';
+      const errorMessage = err.message || 'Failed to upload statement';
       setError(errorMessage);
+
+      // Notify parent of upload error
+      onUploadError?.(errorMessage);
     } finally {
       setIsLoading(false);
     }

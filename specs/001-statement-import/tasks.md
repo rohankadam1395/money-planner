@@ -131,10 +131,10 @@ description: "Task list for statement import feature implementation"
 - [x] T050 [US1] Create preview page in `frontend/src/pages/statements/PreviewPage.tsx` (shows extracted transactions, confirm/cancel buttons)
 - [x] T051 [US1] Implement preview data fetch and polling in `frontend/src/hooks/useStatementPreview.ts` (GET /api/statements/{id}/preview)
 - [x] T052 [US1] Implement confirm import handler in `frontend/src/pages/statements/PreviewPage.tsx` (POST /api/statements/{id}/confirm)
-- [ ] T053 [P] [US1] Add upload progress indicator component in `frontend/src/components/UploadProgress.tsx`
-- [ ] T054 [US1] Integrate upload flow: UploadPage → Preview → Confirmation in `frontend/src/pages/statements/index.tsx`
+- [x] T053 [P] [US1] Add upload progress indicator component in `frontend/src/components/UploadProgress.tsx`
+- [x] T054 [US1] Integrate upload flow: UploadPage → Preview → Confirmation in `frontend/src/pages/statements/index.tsx`
 
-**Progress: 9/11 complete (preview flow done; progress component and routing pending)**
+**Progress: 11/11 complete ✓ (full frontend flow complete)**
 
 #### Integration & Testing
 

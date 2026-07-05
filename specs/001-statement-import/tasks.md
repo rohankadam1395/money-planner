@@ -69,20 +69,20 @@ description: "Task list for statement import feature implementation"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [P] [US1] Contract test for upload endpoint (202 Accepted, PENDING status) in `backend/tests/contract/upload_test.go`
-- [ ] T017 [P] [US1] Contract test for preview endpoint (transactions array, validation_summary) in `backend/tests/contract/preview_test.go`
-- [ ] T018 [P] [US1] Contract test for confirm endpoint (persist transactions, SUCCESS status) in `backend/tests/contract/confirm_test.go`
+- [x] T016 [P] [US1] Contract test for upload endpoint (202 Accepted, PENDING status) in `backend/tests/contract/upload_test.go`
+- [x] T017 [P] [US1] Contract test for preview endpoint (transactions array, validation_summary) in `backend/tests/contract/preview_test.go`
+- [x] T018 [P] [US1] Contract test for confirm endpoint (persist transactions, SUCCESS status) in `backend/tests/contract/confirm_test.go`
 - [ ] T019 [P] [US1] Integration test for PDF parsing (extract HDFC statement format) in `backend/tests/integration/pdf_parser_test.go`
 - [ ] T020 [P] [US1] Integration test for CSV parsing (extract standard bank CSV) in `backend/tests/integration/csv_parser_test.go`
-- [ ] T021 [P] [US1] Unit tests for transaction validator (date format, amount, merchant) in `backend/tests/unit/validator_test.go`
+- [x] T021 [P] [US1] Unit tests for transaction validator (date format, amount, merchant) in `backend/tests/unit/validator_test.go`
 
 ### Implementation for User Story 1
 
 #### Models & Data Layer
 
-- [ ] T022 [P] [US1] Create Transaction model and repository in `backend/internal/statement/models.go`
-- [ ] T023 [P] [US1] Create Statement model and repository in `backend/internal/statement/models.go`
-- [ ] T024 [P] [US1] Create ImportJob model and repository in `backend/internal/statement/models.go`
+- [x] T022 [P] [US1] Create Transaction model and repository in `backend/internal/statement/models.go`
+- [x] T023 [P] [US1] Create Statement model and repository in `backend/internal/statement/models.go`
+- [x] T024 [P] [US1] Create ImportJob model and repository in `backend/internal/statement/models.go`
 - [ ] T025 [US1] Implement sqlc queries for transactions (insert, select by statement) in `backend/internal/db/queries/transactions.sql`
 - [ ] T026 [US1] Implement sqlc queries for statements (insert, select by user) in `backend/internal/db/queries/statements.sql`
 

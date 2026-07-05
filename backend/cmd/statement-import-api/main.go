@@ -51,15 +51,39 @@ func main() {
 	router.Use(apimiddleware.NewLoggingMiddleware(logger).Handler)
 	router.Use(middleware.Recoverer)
 
+	// CORS middleware
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Max-Age", "300")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	// Health check endpoint (no auth required)
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status":"ok"}`)
 	})
 
-	// Initialize statement service (TODO: inject database connection)
-	// For now, create with nil repositories as placeholders
-	stmtService := &statement.StatementService{}
+	// Test login endpoint (no auth required) - for local testing only
+	router.Post("/api/auth/login", handleTestLogin(jwtSecret))
+
+	// Initialize statement service with stub repositories for testing
+	// TODO: Connect to actual database and use real repositories
+	stmtService := statement.NewStatementService(
+		&statement.StatementRepository{},
+		&statement.TransactionRepository{},
+		&statement.ImportJobRepository{},
+	)
 
 	// Protected API routes
 	router.Route("/api", func(r chi.Router) {
@@ -67,7 +91,7 @@ func main() {
 		r.Use(authMiddleware.Handler)
 
 		// Setup statement routes
-		api.SetupRoutes(r, stmtService)
+		api.SetupRoutes(r, stmtService, logger)
 	})
 
 	// Start server

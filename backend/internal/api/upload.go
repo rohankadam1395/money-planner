@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"money-planner/backend/internal/api/middleware"
 	"money-planner/backend/internal/statement"
 )
@@ -13,18 +14,23 @@ import (
 // UploadHandler handles statement file uploads
 type UploadHandler struct {
 	service *statement.StatementService
+	logger  *logrus.Logger
 }
 
 // NewUploadHandler creates a new upload handler
-func NewUploadHandler(service *statement.StatementService) *UploadHandler {
+func NewUploadHandler(service *statement.StatementService, logger *logrus.Logger) *UploadHandler {
 	return &UploadHandler{
 		service: service,
+		logger:  logger,
 	}
 }
 
 // Upload handles POST /api/statements/upload
 func (h *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Upload handler called")
+
 	if r.Method != http.MethodPost {
+		h.logger.Warn("Invalid method: " + r.Method)
 		middleware.WriteJSONError(w, http.StatusMethodNotAllowed, "method not allowed", "METHOD_NOT_ALLOWED")
 		return
 	}
@@ -83,8 +89,17 @@ func (h *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		UserID:      userID,
 	}
 
+	h.logger.WithFields(logrus.Fields{
+		"fileName":   handler.Filename,
+		"fileFormat": fileFormat,
+		"bankCode":   bankCode,
+		"userID":     userID,
+		"fileSize":   len(fileContent),
+	}).Info("Calling service.Upload")
+
 	resp, err := h.service.Upload(uploadReq)
 	if err != nil {
+		h.logger.WithError(err).Error("Upload failed")
 		// Check if it's a duplicate
 		if strings.Contains(err.Error(), "duplicate") {
 			middleware.WriteJSONError(w, http.StatusConflict, err.Error(), "DUPLICATE_STATEMENT")
@@ -95,6 +110,8 @@ func (h *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 			"upload failed", err.Error(), "UPLOAD_FAILED")
 		return
 	}
+
+	h.logger.WithField("statementID", resp.StatementID).Info("Upload successful")
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")

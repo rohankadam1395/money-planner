@@ -11,19 +11,41 @@ This guide provides comprehensive instructions for testing the Statement Import 
 
 ## Quick Start
 
-### 1. Start the Backend
+### Option A: Using Docker Compose (Recommended)
 
 ```bash
+# From repository root
+docker-compose up -d
+
+# Verify PostgreSQL is running
+docker-compose ps
+
+# Start the backend (in backend directory)
 cd backend
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_NAME=money_planner
-export DB_USER=postgres
-export DB_PASSWORD=your_password
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/money_planner?sslmode=disable"
+export JWT_SECRET="your_jwt_secret_key"
 
 go run cmd/statement-import-api/main.go
 # Server will run on http://localhost:8080
 ```
+
+### Option B: Manual Setup
+
+```bash
+cd backend
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/money_planner?sslmode=disable"
+export JWT_SECRET="your_jwt_secret_key"
+
+go run cmd/statement-import-api/main.go
+# Server will run on http://localhost:8080
+```
+
+**Prerequisites for Option B**:
+- PostgreSQL 12+ running on localhost:5432
+- Database `money_planner` created
+- User `postgres` with appropriate permissions
+
+**Note**: The `?sslmode=disable` parameter is required for local development without SSL certificates. For production, use `sslmode=require`.
 
 ### 2. Start the Frontend
 
@@ -35,8 +57,19 @@ npm run dev
 
 ### 3. Authenticate
 
-- Navigate to `http://localhost:3000/auth` (implement login as needed)
-- Or use a valid JWT token in the `Authorization: Bearer <token>` header
+**For Local Testing:**
+
+1. Navigate to `http://localhost:3000/` or `http://localhost:3000/auth`
+2. Enter any username (e.g., `testuser@example.com`)
+3. Click **Login**
+4. You'll be redirected to `/statements` with authentication enabled
+
+**Test Token:**
+- Generated automatically for 24 hours
+- Stored in browser's localStorage
+- Valid for all API calls in this session
+
+**Note:** This is a test auth page for local development only. In production, implement proper OAuth 2.0 or JWT authentication with a backend auth service.
 
 ---
 

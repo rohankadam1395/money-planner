@@ -1,0 +1,30 @@
+Value Date,Transaction Description,Debit Amount,Credit Amount,Running Balance
+01/07/2026,Opening Balance,0.00,45000.00,45000.00
+02/07/2026,Salary July 2026,0.00,70000.00,115000.00
+03/07/2026,Utility Bill - Electricity,1800.00,0.00,113200.00
+04/07/2026,Grocery Shopping - Big Basket,1500.00,0.00,111700.00
+05/07/2026,ATM Withdrawal - Axis Bank,10000.00,0.00,101700.00
+06/07/2026,Online Purchase - Myntra,2500.00,0.00,99200.00
+07/07/2026,Dining - Cafe Coffee Day,450.00,0.00,98750.00
+08/07/2026,Internet Connectivity Bill,899.00,0.00,97851.00
+09/07/2026,Mobile Service Recharge,399.00,0.00,97452.00
+10/07/2026,Bonus Payout,0.00,20000.00,117452.00
+11/07/2026,Hospital Bill Payment,3500.00,0.00,113952.00
+12/07/2026,Gas Station Fuel,2000.00,0.00,111952.00
+13/07/2026,Health Insurance,3000.00,0.00,108952.00
+14/07/2026,FD Maturity Credit,0.00,5000.00,113952.00
+15/07/2026,Apartment Rent,10000.00,0.00,103952.00
+16/07/2026,Mutual Fund SIP,5000.00,0.00,98952.00
+17/07/2026,Municipal Tax,400.00,0.00,98552.00
+18/07/2026,Apparel Purchase,2200.00,0.00,96352.00
+19/07/2026,Savings Interest,0.00,200.00,96552.00
+20/07/2026,Electronics Purchase,18000.00,0.00,78552.00
+21/07/2026,Sports Membership,1000.00,0.00,77552.00
+22/07/2026,Travel Booking,4000.00,0.00,73552.00
+23/07/2026,Quick Service Restaurant,550.00,0.00,73002.00
+24/07/2026,Monthly Salary,0.00,70000.00,143002.00
+25/07/2026,Home Maintenance,3000.00,0.00,140002.00
+26/07/2026,Subscription Services,250.00,0.00,139752.00
+27/07/2026,Pharmacy,600.00,0.00,139152.00
+28/07/2026,Movie & Entertainment,700.00,0.00,138452.00
+29/07/2026,Account Closing Balance,0.00,0.00,138452.00

@@ -1,0 +1,30 @@
+Date,Narration,Debit,Credit,Balance
+01/07/2026,Opening Balance,,50000.00,50000.00
+02/07/2026,Salary Deposit - ACME Corp,,75000.00,125000.00
+03/07/2026,Electricity Bill Payment,2500.00,,122500.00
+04/07/2026,Grocery - Metro Store,1200.50,,121299.50
+05/07/2026,ATM Withdrawal,5000.00,,116299.50
+06/07/2026,Online Shopping - Amazon,3499.99,,112799.51
+07/07/2026,Restaurant - Taj Mahal,850.00,,111949.51
+08/07/2026,Internet Bill,800.00,,111149.51
+09/07/2026,Mobile Recharge,499.00,,110650.51
+10/07/2026,Salary Bonus - ACME Corp,,25000.00,135650.51
+11/07/2026,Medical Checkup,2000.00,,133650.51
+12/07/2026,Fuel - Shell Petrol Pump,1500.00,,132150.51
+13/07/2026,Insurance Premium,5000.00,,127150.51
+14/07/2026,Dividend Payment - HDFC,,1500.00,128650.51
+15/07/2026,Rent Payment,15000.00,,113650.51
+16/07/2026,Investment - Mutual Fund,10000.00,,103650.51
+17/07/2026,Utility Payment - Water Bill,300.00,,103350.51
+18/07/2026,Shopping - Nike,4500.00,,98850.51
+19/07/2026,Interest Credit - Savings,,150.00,99000.51
+20/07/2026,Mobile Phone Purchase,25000.00,,74000.51
+21/07/2026,Gym Membership,1500.00,,72500.51
+22/07/2026,Travel - Train Ticket,2500.00,,70000.51
+23/07/2026,Restaurant - Pizza Hut,600.00,,69400.51
+24/07/2026,Salary Deposit - ACME Corp,,75000.00,144400.51
+25/07/2026,Home Loan EMI,25000.00,,119400.51
+26/07/2026,Cable & DTH Bill,500.00,,118900.51
+27/07/2026,Pharmacy Purchase,1200.00,,117700.51
+28/07/2026,Movie Tickets,800.00,,116900.51
+29/07/2026,Closing Balance,,116900.51,116900.51

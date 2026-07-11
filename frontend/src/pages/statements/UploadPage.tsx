@@ -95,23 +95,22 @@ export default function UploadPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-100 py-12 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Upload Bank Statement
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-2">
+            Upload Statement
           </h1>
-          <p className="text-gray-600">
-            Upload your bank statement to extract transactions and begin your
-            financial analysis
+          <p className="text-gray-600 text-lg">
+            Upload your bank statement to extract transactions instantly
           </p>
         </div>
 
         {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-lg shadow-xl p-8 space-y-8"
+          className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 space-y-8 border border-white/40"
         >
           {/* Bank Selector */}
           <div>

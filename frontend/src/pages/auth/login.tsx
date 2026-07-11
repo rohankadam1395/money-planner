@@ -36,8 +36,9 @@ export default function LoginPage() {
       }
 
       const data = await response.json();
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user_id', data.user_id);
+      // Use same keys as AuthContext
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('userId', data.user_id);
       localStorage.setItem('email', data.email);
 
       router.push('/statements/list');

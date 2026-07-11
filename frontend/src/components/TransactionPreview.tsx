@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState } from 'react';
 import { Transaction } from '@/services/statementApi';
 
@@ -76,7 +74,7 @@ export function TransactionPreview({
                   className="border-b hover:bg-blue-50 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-3 text-sm text-gray-900">
-                    {formatDate(txn.date)}
+                    {formatDate(txn.transaction_date)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">
                     <div className="truncate">{txn.description}</div>

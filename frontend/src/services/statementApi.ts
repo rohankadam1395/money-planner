@@ -17,16 +17,21 @@ export interface StatementUploadResponse {
 }
 
 export interface Transaction {
-  id: string;
+  transaction_id: string;
   statement_id: string;
-  date: string;
-  description: string;
+  user_id: string;
+  transaction_date: string;
+  merchant: string;
   amount: number;
   type: 'DEBIT' | 'CREDIT';
-  merchant?: string;
-  account_number_hash?: string;
+  description?: string;
+  balance?: number;
   currency?: string;
+  bank_code?: string;
+  account_number_hash?: string;
+  imported_at: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface ValidationError {

@@ -180,8 +180,8 @@ export default function PreviewPage() {
                     Transaction Details
                   </h3>
                   <div className="mt-3 space-y-2 text-sm text-blue-800">
-                    <p><strong>Date:</strong> {new Date(selectedTransaction.date).toLocaleDateString('en-IN')}</p>
-                    <p><strong>Description:</strong> {selectedTransaction.description}</p>
+                    <p><strong>Date:</strong> {new Date(selectedTransaction.transaction_date).toLocaleDateString('en-IN')}</p>
+                    <p><strong>Description:</strong> {selectedTransaction.description || selectedTransaction.merchant}</p>
                     <p><strong>Amount:</strong> ₹{selectedTransaction.amount.toFixed(2)}</p>
                     <p><strong>Type:</strong> {selectedTransaction.type}</p>
                   </div>

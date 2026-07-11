@@ -76,16 +76,16 @@ export default function StatementsListPage() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-100 p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Your Statements</h1>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent">Your Statements</h1>
           <Link
             href="/statements"
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
+            className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-teal-400/50 transition-all transform hover:scale-105 font-semibold"
           >
-            Upload Statement
+            + Upload Statement
           </Link>
         </div>
 
@@ -96,44 +96,44 @@ export default function StatementsListPage() {
         )}
 
         {statements.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500 mb-4">No statements uploaded yet</p>
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg p-12 text-center border border-white/40">
+            <p className="text-gray-500 mb-4 text-lg">No statements uploaded yet</p>
             <Link
               href="/statements"
-              className="text-indigo-600 hover:text-indigo-700 font-semibold"
+              className="text-cyan-600 hover:text-cyan-700 font-semibold hover:underline transition-all text-lg"
             >
               Upload your first statement →
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <div className="overflow-x-auto bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gradient-to-r from-cyan-50 to-teal-50 border-b-2 border-cyan-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">File Name</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Bank</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Format</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Transactions</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Uploaded</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Action</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-cyan-900">File Name</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-cyan-900">Bank</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-cyan-900">Format</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-cyan-900">Transactions</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-cyan-900">Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-cyan-900">Uploaded</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-cyan-900">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {statements.map((stmt) => (
-                  <tr key={stmt.statement_id} className="border-b hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 text-sm text-gray-900">{stmt.file_name}</td>
+                  <tr key={stmt.statement_id} className="border-b hover:bg-cyan-50/50 transition">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{stmt.file_name}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{stmt.bank_code}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{stmt.file_format}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{stmt.transaction_count}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-cyan-600">{stmt.transaction_count}</td>
                     <td className="px-6 py-4 text-sm">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
                           stmt.status === 'SUCCESS'
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-emerald-200 text-emerald-800'
                             : stmt.status === 'PENDING'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-amber-200 text-amber-800'
+                            : 'bg-rose-200 text-rose-800'
                         }`}
                       >
                         {stmt.status}
@@ -143,7 +143,7 @@ export default function StatementsListPage() {
                     <td className="px-6 py-4 text-sm">
                       <Link
                         href={`/statements/preview?id=${stmt.statement_id}`}
-                        className="text-indigo-600 hover:text-indigo-700 font-semibold"
+                        className="text-cyan-600 hover:text-cyan-700 font-bold hover:underline transition-all"
                       >
                         View
                       </Link>

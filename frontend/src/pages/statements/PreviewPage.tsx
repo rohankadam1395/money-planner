@@ -140,12 +140,12 @@ export default function PreviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-100 py-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Review Statement Preview
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-1">
+            Review & Confirm
           </h1>
           <p className="text-sm text-gray-600">
             Review extracted transactions below. Click Confirm to import.
@@ -153,7 +153,7 @@ export default function PreviewPage() {
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-lg shadow-xl p-6 space-y-6">
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 space-y-6 border border-white/40">
           {/* Validation Summary */}
           <section>
             <h2 className="text-lg font-bold text-gray-900 mb-3">Validation Summary</h2>
@@ -209,22 +209,22 @@ export default function PreviewPage() {
           </section>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 pt-6 border-t">
+          <div className="flex gap-4 pt-6 border-t-2 border-purple-100">
             <button
               onClick={handleConfirmImport}
               disabled={isConfirming || (preview?.validation_summary?.invalid_transactions || 0) > 0}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium text-white transition-colors ${
+              className={`flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all transform ${
                 (preview?.validation_summary?.invalid_transactions || 0) > 0
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-400/50 hover:scale-105'
               }`}
             >
-              {isConfirming ? 'Confirming...' : 'Confirm & Import'}
+              {isConfirming ? 'Confirming...' : '✓ Confirm & Import'}
             </button>
             <button
               onClick={handleCancel}
               disabled={isConfirming}
-              className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
+              className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition-all font-semibold disabled:opacity-50 transform hover:scale-105"
             >
               Cancel
             </button>

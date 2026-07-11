@@ -1,9 +1,14 @@
 version: '3.8'
 
+# Local Development Compose
+# Start with: docker-compose up -d
+# Logs: docker-compose logs -f
+# Stop: docker-compose down
+
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: money-planner-postgres
+    container_name: money-planner-postgres-dev
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -11,12 +16,53 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Persistent database across restarts
+      - postgres_data_dev:/var/lib/postgresql/data
+      # Init script runs on first startup only
+      - ./init-db.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d money_planner"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    networks:
+      - money-planner-dev
+    # Auto-restart on failure for development
+    restart: unless-stopped
+    # Show SQL logs in development for debugging
+    command:
+      - "postgres"
+      - "-c"
+      - "log_statement=all"
+      - "-c"
+      - "log_duration=on"
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: money-planner-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data_dev:/var/lib/pgadmin
+    networks:
+      - money-planner-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
+    driver: local
+  pgadmin_data_dev:
+    driver: local
+
+networks:
+  money-planner-dev:
+    driver: bridge

@@ -9,9 +9,11 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sirupsen/logrus"
 
-	dbpkg "money-planner/backend/internal/db"
 	"money-planner/backend/internal/api"
 	apimiddleware "money-planner/backend/internal/api/middleware"
+	"money-planner/backend/internal/auth"
+	dbpkg "money-planner/backend/internal/db"
+	"money-planner/backend/internal/db/migrations"
 	"money-planner/backend/internal/statement"
 )
 
@@ -42,6 +44,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// Run migrations
+	if err := migrations.RunMigrations(db.GetConnection()); err != nil {
+		logger.WithError(err).Fatal("failed to run database migrations")
+	}
+
 	// Set up router
 	router := chi.NewRouter()
 
@@ -52,9 +59,13 @@ func main() {
 	router.Use(middleware.Recoverer)
 
 	// CORS middleware
+	corsOrigin := os.Getenv("CORS_ORIGIN")
+	if corsOrigin == "" {
+		corsOrigin = "http://localhost:3000"
+	}
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+			w.Header().Set("Access-Control-Allow-Origin", corsOrigin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			w.Header().Set("Access-Control-Max-Age", "300")
@@ -74,15 +85,19 @@ func main() {
 		fmt.Fprintf(w, `{"status":"ok"}`)
 	})
 
-	// Test login endpoint (no auth required) - for local testing only
-	router.Post("/api/auth/login", handleTestLogin(jwtSecret))
+	// Initialize auth service
+	userRepo := auth.NewUserRepository(db.GetConnection())
+	authService := auth.NewAuthService(userRepo, jwtSecret)
 
-	// Initialize statement service with stub repositories for testing
-	// TODO: Connect to actual database and use real repositories
+	// Auth endpoints (no auth required)
+	router.Post("/api/auth/register", RegisterHandler(authService))
+	router.Post("/api/auth/login", LoginHandler(authService))
+
+	// Initialize statement service with database-backed repositories
 	stmtService := statement.NewStatementService(
-		&statement.StatementRepository{},
-		&statement.TransactionRepository{},
-		&statement.ImportJobRepository{},
+		statement.NewStatementRepository(db.GetConnection()),
+		statement.NewTransactionRepository(db.GetConnection()),
+		statement.NewImportJobRepository(db.GetConnection()),
 	)
 
 	// Protected API routes

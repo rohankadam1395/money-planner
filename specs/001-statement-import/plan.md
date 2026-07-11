@@ -8,7 +8,10 @@
 
 ## Summary
 
-Statement Import is Phase 1 of MoneyPlan AI. Users upload bank statements (PDF/CSV/Excel) from multiple Indian banks. The system extracts transaction data (date, merchant, amount, debit/credit, balance, description), validates it, displays a preview, and persists to database. This feature unblocks all downstream features (categorization, budgeting, analytics, AI insights) by providing clean transaction data. MVP focuses on single-bank imports (P1); multi-bank normalization (P2) and duplicate detection (P3) follow.
+Statement Import is Phase 1 of MoneyPlan AI. Users upload bank statements (PDF/CSV/Excel) from Indian banks. The system extracts transaction data (date, merchant, amount, debit/credit, balance, description), validates it, displays a preview, and persists to database. This feature unblocks all downstream features (categorization, budgeting, analytics, AI insights) by providing clean transaction data. 
+
+**MVP Scope (Phase 1)**: Single-bank uploads, transaction extraction, validation, and preview confirmation (User Story 1: Upload & Parse). 
+**Future Phases**: Multi-bank normalization (US2, P2) and duplicate detection (US3, P3) follow MVP completion.
 
 ## Technical Context
 
@@ -33,7 +36,8 @@ Statement Import is Phase 1 of MoneyPlan AI. Users upload bank statements (PDF/C
 
 **Constraints**: 
 - File size: ≤50MB per statement (typical bank exports: 1-5MB for 12 months)
-- Duplicate detection: Deterministic over 12-month windows, <1s query time
+- **MVP Phase 1 (US1)**: No duplicate detection (deferred to US3, Phase 5)
+- **Future Phase (US3)**: Duplicate detection must be deterministic over 12-month windows, <1s query time
 - Security: Encrypt transactions at rest (PostgreSQL SSL), validate all file inputs (no zip bombs, script injection)
 
 **Scale/Scope**: MVP; single user session (no distributed processing yet); ~1000 transactions per typical statement

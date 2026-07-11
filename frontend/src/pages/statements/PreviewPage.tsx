@@ -72,6 +72,23 @@ export default function PreviewPage() {
     router.back();
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
+          <div className="inline-block p-3 bg-blue-100 rounded-full mb-4">
+            <svg className="w-8 h-8 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Processing Statement</h2>
+          <p className="text-gray-600 text-sm">Extracting transactions from your statement...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Error state
   if (error && !isLoading) {
     return (
@@ -112,31 +129,35 @@ export default function PreviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
             Review Statement Preview
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm text-gray-600">
             Review extracted transactions below. Click Confirm to import.
           </p>
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-lg shadow-xl p-8 space-y-8">
+        <div className="bg-white rounded-lg shadow-xl p-6 space-y-6">
           {/* Validation Summary */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Validation Summary</h2>
-            <ValidationSummary
-              totalRows={preview.validation_summary.total_rows}
-              validTransactions={preview.validation_summary.valid_transactions}
-              invalidTransactions={preview.validation_summary.invalid_transactions}
-              errors={preview.validation_summary.errors}
-              periodStart={preview.validation_summary.period_start}
-              periodEnd={preview.validation_summary.period_end}
-            />
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Validation Summary</h2>
+            {preview?.validation_summary ? (
+              <ValidationSummary
+                totalRows={preview.validation_summary.total_rows || 0}
+                validTransactions={preview.validation_summary.valid_transactions || 0}
+                invalidTransactions={preview.validation_summary.invalid_transactions || 0}
+                errors={preview.validation_summary.errors || []}
+                periodStart={preview.validation_summary.period_start}
+                periodEnd={preview.validation_summary.period_end}
+              />
+            ) : (
+              <p className="text-gray-500">No validation data available</p>
+            )}
           </section>
 
           {/* Transaction Details */}
@@ -166,11 +187,11 @@ export default function PreviewPage() {
 
           {/* Transactions Table */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Extracted Transactions ({preview.transactions.length})
+            <h2 className="text-lg font-bold text-gray-900 mb-3">
+              Extracted Transactions ({preview?.transactions?.length || 0})
             </h2>
             <TransactionPreview
-              transactions={preview.transactions}
+              transactions={preview?.transactions || []}
               pageSize={15}
               onSelectTransaction={setSelectedTransaction}
             />
@@ -180,9 +201,9 @@ export default function PreviewPage() {
           <div className="flex gap-4 pt-6 border-t">
             <button
               onClick={handleConfirmImport}
-              disabled={isConfirming || preview.validation_summary.invalid_transactions > 0}
+              disabled={isConfirming || (preview?.validation_summary?.invalid_transactions || 0) > 0}
               className={`flex-1 px-6 py-3 rounded-lg font-medium text-white transition-colors ${
-                preview.validation_summary.invalid_transactions > 0
+                (preview?.validation_summary?.invalid_transactions || 0) > 0
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700'
               }`}
@@ -198,7 +219,7 @@ export default function PreviewPage() {
             </button>
           </div>
 
-          {preview.validation_summary.invalid_transactions > 0 && (
+          {(preview?.validation_summary?.invalid_transactions || 0) > 0 && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-800 text-sm">
                 <strong>Note:</strong> Please fix validation errors before importing.

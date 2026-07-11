@@ -93,12 +93,73 @@ func (s *StatementService) Upload(req *UploadRequest) (*UploadResponse, error) {
 		return nil, fmt.Errorf("failed to save statement: %w", err)
 	}
 
+	// Extract transactions immediately
+	rawTxns, err := s.ExtractTransactions(stmt.StatementID.String(), req.FileContent, req.FileFormat)
+	if err != nil {
+		// Still create statement but update status to failed
+		errorMsg := err.Error()
+		stmt.Status = "FAILED"
+		stmt.ErrorLog = &errorMsg
+		s.stmtRepo.UpdateStatus(stmt.StatementID, stmt.Status)
+		s.stmtRepo.UpdateError(stmt.StatementID, errorMsg)
+		return &UploadResponse{
+			StatementID: stmt.StatementID.String(),
+			Status:      "FAILED",
+			BankCode:    stmt.BankCode,
+			FileName:    stmt.FileName,
+			FileFormat:  stmt.FileFormat,
+			UploadedAt:  stmt.UploadedAt,
+			FileHash:    fileHash,
+			ErrorMessage: err.Error(),
+		}, err
+	}
+
+	// Convert and save transactions if extraction successful
+	fmt.Printf("[DEBUG] rawTxns=%v, len=%d\n", rawTxns, len(rawTxns))
+	if rawTxns != nil && len(rawTxns) > 0 {
+		var txns []*Transaction
+		fmt.Printf("[DEBUG] Converting %d raw transactions\n", len(rawTxns))
+		for _, raw := range rawTxns {
+			txn := &Transaction{
+				TransactionID:     uuid.New().String(),
+				StatementID:       stmt.StatementID.String(),
+				UserID:            req.UserID,
+				BankCode:          req.BankCode,
+				AccountNumberHash: stmt.AccountNumberHash,
+				TransactionDate:   raw.Date,
+				Merchant:          raw.Merchant,
+				Amount:            raw.Amount,
+				Type:              raw.Type,
+				Balance:           raw.Balance,
+				Description:       raw.Description,
+				Currency:          raw.Currency,
+				RawData:           raw.RawData,
+				ImportedAt:        time.Now(),
+				CreatedAt:         time.Now(),
+				UpdatedAt:         time.Now(),
+			}
+			txns = append(txns, txn)
+		}
+
+		// Batch insert transactions
+		if err := s.txnRepo.CreateBatch(txns); err != nil {
+			// Log error but don't fail the upload
+			fmt.Printf("error saving transactions: %v\n", err)
+		}
+
+		// Update statement with transaction count
+		stmt.TransactionCount = len(txns)
+		if err := s.stmtRepo.UpdateTransactionCount(stmt.StatementID, stmt.TransactionCount); err != nil {
+			fmt.Printf("error updating transaction count: %v\n", err)
+		}
+	}
+
 	// Create import job for async processing
 	job := &ImportJob{
 		JobID:       uuid.New(),
 		StatementID: stmt.StatementID,
 		UserID:      stmt.UserID,
-		Status:      "PENDING",
+		Status:      "COMPLETED",
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -109,7 +170,7 @@ func (s *StatementService) Upload(req *UploadRequest) (*UploadResponse, error) {
 
 	return &UploadResponse{
 		StatementID: stmt.StatementID.String(),
-		Status:      "PENDING",
+		Status:      "SUCCESS",
 		BankCode:    stmt.BankCode,
 		FileName:    stmt.FileName,
 		FileFormat:  stmt.FileFormat,
@@ -321,4 +382,22 @@ func (s *StatementService) validateUploadRequest(req *UploadRequest) error {
 func (s *StatementService) computeFileHash(content []byte) string {
 	hash := sha256.Sum256(content)
 	return fmt.Sprintf("%x", hash)
+}
+
+// GetStatement fetches a statement by ID
+func (s *StatementService) GetStatement(statementID string) (*Statement, error) {
+	id, err := uuid.Parse(statementID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid statement ID format")
+	}
+	return s.stmtRepo.GetByID(id)
+}
+
+// GetTransactions fetches all transactions for a statement
+func (s *StatementService) GetTransactions(statementID string) ([]*Transaction, error) {
+	id, err := uuid.Parse(statementID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid statement ID format")
+	}
+	return s.txnRepo.GetByStatement(id)
 }

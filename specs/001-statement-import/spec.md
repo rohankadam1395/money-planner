@@ -67,16 +67,21 @@ User can view previously uploaded statements and re-upload the same statement. S
 
 ### Functional Requirements
 
+#### MVP Core (User Story 1: Upload & Parse)
+
 - **FR-001**: System MUST accept PDF bank statements from major Indian banks (HDFC, ICICI, Axis, SBI, etc.)
 - **FR-002**: System MUST accept CSV and Excel (.xlsx) files in standard bank export format
 - **FR-003**: System MUST extract from each transaction: date, merchant/payee name, amount, debit/credit indicator, account balance, description/notes
 - **FR-004**: System MUST validate extracted transactions before persisting (date format valid, amount is numeric, debit/credit is valid indicator)
 - **FR-005**: System MUST display a preview of extracted transactions to user before confirming import
 - **FR-006**: System MUST persist imported transactions to database with transaction date, merchant, amount, type (debit/credit), balance, and description
-- **FR-007**: System MUST detect and prevent duplicate imports (same statement file or same date range from same bank)
 - **FR-008**: System MUST store transaction currency in the database for future multi-currency support. For MVP Phase 1, system assumes all transactions are in Indian Rupees (INR); currency field defaults to "INR" on import. Future phases (US2+) will add currency conversion and multi-currency display.
 - **FR-009**: System MUST handle statements with missing optional fields gracefully (e.g., balance column not always present in all bank formats)
 - **FR-010**: System MUST log all import operations with file name, row count, success/failure status, timestamp
+
+#### User Story 3: Upload History & Duplicate Detection (Priority: P3)
+
+- **FR-007**: System MUST detect and prevent duplicate imports (same statement file or same date range from same bank). Note: Duplicate detection is deferred to Phase 5 (User Story 3) and is not part of MVP.
 
 ### Key Entities
 

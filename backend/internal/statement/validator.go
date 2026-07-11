@@ -171,22 +171,22 @@ func isHTMLOrScript(s string) bool {
 }
 
 type Transaction struct {
-	TransactionID     string
-	UserID            string
-	StatementID       string
-	TransactionDate   time.Time
-	Merchant          string
-	Amount            float64
-	Type              string // DEBIT or CREDIT
-	Balance           *float64
-	Description       string
-	Currency          string
-	BankCode          string
-	AccountNumberHash string
-	RawData           map[string]interface{}
-	ImportedAt        time.Time
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	TransactionID     string                 `json:"transaction_id"`
+	UserID            string                 `json:"user_id"`
+	StatementID       string                 `json:"statement_id"`
+	TransactionDate   time.Time              `json:"transaction_date"`
+	Merchant          string                 `json:"merchant"`
+	Amount            float64                `json:"amount"`
+	Type              string                 `json:"type"`
+	Balance           *float64               `json:"balance,omitempty"`
+	Description       string                 `json:"description,omitempty"`
+	Currency          string                 `json:"currency,omitempty"`
+	BankCode          string                 `json:"bank_code,omitempty"`
+	AccountNumberHash string                 `json:"account_number_hash,omitempty"`
+	RawData           map[string]interface{} `json:"raw_data,omitempty"`
+	ImportedAt        time.Time              `json:"imported_at"`
+	CreatedAt         time.Time              `json:"created_at"`
+	UpdatedAt         time.Time              `json:"updated_at"`
 }
 
 // RawTransaction represents a transaction extracted from a statement file before validation

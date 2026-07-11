@@ -29,19 +29,19 @@ export function ValidationSummary({
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="text-sm text-blue-600 font-semibold">Total Rows</div>
-          <div className="text-2xl font-bold text-blue-900">{totalRows}</div>
+          <div className="text-xs text-blue-600 font-semibold uppercase">Total Rows</div>
+          <div className="text-lg font-bold text-blue-900">{totalRows}</div>
         </div>
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="text-sm text-green-600 font-semibold">Valid</div>
-          <div className="text-2xl font-bold text-green-900">{validTransactions}</div>
+          <div className="text-xs text-green-600 font-semibold uppercase">Valid</div>
+          <div className="text-lg font-bold text-green-900">{validTransactions}</div>
           <div className="text-xs text-green-600 mt-1">{validPercentage}%</div>
         </div>
         <div className={`p-4 ${invalidTransactions > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'} border rounded-lg`}>
-          <div className={`text-sm font-semibold ${invalidTransactions > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+          <div className={`text-xs font-semibold uppercase ${invalidTransactions > 0 ? 'text-red-600' : 'text-gray-600'}`}>
             Invalid
           </div>
-          <div className={`text-2xl font-bold ${invalidTransactions > 0 ? 'text-red-900' : 'text-gray-900'}`}>
+          <div className={`text-lg font-bold ${invalidTransactions > 0 ? 'text-red-900' : 'text-gray-900'}`}>
             {invalidTransactions}
           </div>
         </div>

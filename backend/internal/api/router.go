@@ -9,6 +9,10 @@ import (
 // SetupRoutes configures all API routes
 func SetupRoutes(router chi.Router, service *statement.StatementService, logger *logrus.Logger) {
 	router.Route("/statements", func(sr chi.Router) {
+		// List statements
+		listHandler := NewListHandler(service)
+		sr.Get("/", listHandler.List)
+
 		// Upload endpoint
 		uploadHandler := NewUploadHandler(service, logger)
 		sr.Post("/upload", uploadHandler.Upload)

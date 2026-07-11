@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	apimiddleware "money-planner/backend/internal/api/middleware"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	apimiddleware "money-planner/backend/internal/api/middleware"
 )
 
 type LoginRequest struct {
@@ -19,7 +20,7 @@ type LoginResponse struct {
 	UserID string `json:"user_id"`
 }
 
-func handleTestLogin(jwtSecret string) http.HandlerFunc {
+func HandleTestLogin(jwtSecret string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

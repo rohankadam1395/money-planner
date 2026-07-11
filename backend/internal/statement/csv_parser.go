@@ -66,50 +66,70 @@ func (p *CSVParser) mapHeaders(header []string) error {
 	requiredFields := map[string]bool{
 		"date":     false,
 		"merchant": false,
-		"amount":   false,
-		"type":     false,
 	}
 
 	for i, col := range header {
 		normalized := strings.ToLower(strings.TrimSpace(col))
 
 		// Try exact match
-		if _, ok := requiredFields[normalized]; ok {
-			p.columnMapping[normalized] = i
-			requiredFields[normalized] = true
+		if normalized == "date" {
+			p.columnMapping["date"] = i
+			requiredFields["date"] = true
 			continue
 		}
 
 		// Try fuzzy match for common variations
-		switch {
-		case strings.Contains(normalized, "date") || strings.Contains(normalized, "transaction"):
+		if strings.Contains(normalized, "date") && !strings.Contains(normalized, "update") {
 			if _, exists := p.columnMapping["date"]; !exists {
 				p.columnMapping["date"] = i
 				requiredFields["date"] = true
 			}
-		case strings.Contains(normalized, "merchant") || strings.Contains(normalized, "payee") || strings.Contains(normalized, "description"):
+			continue
+		}
+
+		if strings.Contains(normalized, "merchant") || strings.Contains(normalized, "narration") || strings.Contains(normalized, "payee") || strings.Contains(normalized, "description") {
 			if _, exists := p.columnMapping["merchant"]; !exists {
 				p.columnMapping["merchant"] = i
 				requiredFields["merchant"] = true
 			}
-		case strings.Contains(normalized, "amount") || strings.Contains(normalized, "value"):
-			if _, exists := p.columnMapping["amount"]; !exists {
-				p.columnMapping["amount"] = i
-				requiredFields["amount"] = true
-			}
-		case strings.Contains(normalized, "type") || strings.Contains(normalized, "debit") || strings.Contains(normalized, "credit"):
-			if _, exists := p.columnMapping["type"]; !exists {
-				p.columnMapping["type"] = i
-				requiredFields["type"] = true
-			}
+			continue
+		}
+
+		// Handle amount/debit/credit columns
+		if normalized == "debit" {
+			p.columnMapping["debit"] = i
+		} else if normalized == "credit" {
+			p.columnMapping["credit"] = i
+		} else if normalized == "amount" {
+			p.columnMapping["amount"] = i
+		}
+
+		// Handle balance column
+		if normalized == "balance" {
+			p.columnMapping["balance"] = i
 		}
 	}
 
-	// Check that we found all required fields
+	// Check that we found required fields
 	for field, found := range requiredFields {
 		if !found {
 			return fmt.Errorf("required column '%s' not found in CSV header", field)
 		}
+	}
+
+	// Check for amount source (either single amount column or debit/credit pair)
+	hasAmount := false
+	if _, ok := p.columnMapping["amount"]; ok {
+		hasAmount = true
+	}
+	if _, debitOk := p.columnMapping["debit"]; debitOk {
+		if _, creditOk := p.columnMapping["credit"]; creditOk {
+			hasAmount = true
+		}
+	}
+
+	if !hasAmount {
+		return fmt.Errorf("no amount column found (need 'amount' or both 'debit' and 'credit')")
 	}
 
 	return nil
@@ -121,14 +141,12 @@ func (p *CSVParser) parseRow(record []string) (*RawTransaction, error) {
 		return nil, fmt.Errorf("empty record")
 	}
 
-	// Extract fields based on column mapping
+	// Extract date and merchant (always required)
 	dateStr := p.getField(record, "date")
 	merchant := p.getField(record, "merchant")
-	amountStr := p.getField(record, "amount")
-	txnType := p.getField(record, "type")
 
-	if dateStr == "" || merchant == "" || amountStr == "" || txnType == "" {
-		return nil, fmt.Errorf("missing required fields")
+	if dateStr == "" || merchant == "" {
+		return nil, fmt.Errorf("missing required fields (date or merchant)")
 	}
 
 	// Parse date (try common formats)
@@ -137,14 +155,48 @@ func (p *CSVParser) parseRow(record []string) (*RawTransaction, error) {
 		return nil, fmt.Errorf("invalid date format: %w", err)
 	}
 
-	// Parse amount
-	amount, err := parseAmount(amountStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid amount: %w", err)
+	// Extract amount and type from either:
+	// 1. Single "amount" and "type" columns, or
+	// 2. Separate "debit" and "credit" columns
+	var amount float64
+	var txnType string
+
+	// Try single amount column first
+	amountStr := p.getField(record, "amount")
+	if amountStr != "" {
+		amount, err = parseAmount(amountStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid amount: %w", err)
+		}
+
+		typeStr := p.getField(record, "type")
+		if typeStr == "" {
+			return nil, fmt.Errorf("missing type field")
+		}
+		txnType = strings.ToUpper(strings.TrimSpace(typeStr))
+	} else {
+		// Try debit/credit columns
+		debitStr := p.getField(record, "debit")
+		creditStr := p.getField(record, "credit")
+
+		if debitStr != "" && debitStr != "0" && debitStr != "0.00" {
+			amount, err = parseAmount(debitStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid debit amount: %w", err)
+			}
+			txnType = "DEBIT"
+		} else if creditStr != "" && creditStr != "0" && creditStr != "0.00" {
+			amount, err = parseAmount(creditStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid credit amount: %w", err)
+			}
+			txnType = "CREDIT"
+		} else {
+			return nil, fmt.Errorf("no amount found in debit or credit")
+		}
 	}
 
-	// Normalize transaction type
-	txnType = strings.ToUpper(strings.TrimSpace(txnType))
+	// Validate transaction type
 	if txnType != "DEBIT" && txnType != "CREDIT" {
 		return nil, fmt.Errorf("invalid transaction type: %s", txnType)
 	}
@@ -189,7 +241,8 @@ func parseDate(dateStr string) (time.Time, error) {
 	formats := []string{
 		"2006-01-02",
 		"02-01-2006",
-		"01/02/2006",
+		"02/01/2006", // DD/MM/YYYY (Indian format)
+		"01/02/2006", // MM/DD/YYYY (US format)
 		"2006/01/02",
 		"January 2, 2006",
 		"02 Jan 2006",

@@ -29,7 +29,7 @@ func (h *PreviewHandler) Preview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user ID from context (verify authentication)
-	_, err := middleware.GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		middleware.WriteJSONError(w, http.StatusUnauthorized, "user not authenticated", "UNAUTHORIZED")
 		return
@@ -42,20 +42,42 @@ func (h *PreviewHandler) Preview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Fetch statement from database and verify ownership
-	// For MVP, we don't have persistence yet, so return placeholder
-	// Once database is wired, fetch actual statement data
+	// Fetch statement from database
+	stmt, err := h.service.GetStatement(statementID)
+	if err != nil {
+		middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to fetch statement", "FETCH_ERROR")
+		return
+	}
 
+	if stmt == nil {
+		middleware.WriteJSONError(w, http.StatusNotFound, "statement not found", "NOT_FOUND")
+		return
+	}
+
+	// Verify ownership
+	if stmt.UserID.String() != userID {
+		middleware.WriteJSONError(w, http.StatusForbidden, "access denied", "FORBIDDEN")
+		return
+	}
+
+	// Fetch transactions for this statement
+	transactions, err := h.service.GetTransactions(statementID)
+	if err != nil {
+		middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to fetch transactions", "FETCH_ERROR")
+		return
+	}
+
+	// Build preview response
+	validCount := len(transactions)
 	previewResp := &statement.PreviewResponse{
-		Transactions: []*statement.Transaction{},
+		Transactions: transactions,
 		ValidationSummary: &statement.ValidationSummary{
-			TotalTransactions:   0,
-			ValidTransactions:   0,
+			TotalTransactions:   len(transactions),
+			ValidTransactions:   validCount,
 			InvalidTransactions: 0,
 			Errors:              []map[string]interface{}{},
 		},
-		Status:  "PENDING",
-		Message: "Statement is being processed. Check back in a few seconds.",
+		Status: "SUCCESS",
 	}
 
 	w.Header().Set("Content-Type", "application/json")

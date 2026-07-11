@@ -107,8 +107,12 @@ export const statementApi = {
   // Get preview of extracted transactions
   getPreview: async (statementId: string): Promise<PreviewResponse> => {
     try {
+      const token = localStorage.getItem('authToken');
       const response = await apiClient.get<PreviewResponse>(
-        `/api/statements/${statementId}/preview`
+        `/api/statements/${statementId}/preview`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
       );
       return response.data;
     } catch (error: any) {
@@ -124,9 +128,13 @@ export const statementApi = {
   // Confirm and persist imported transactions
   confirmImport: async (request: ConfirmImportRequest): Promise<ConfirmImportResponse> => {
     try {
+      const token = localStorage.getItem('authToken');
       const response = await apiClient.post<ConfirmImportResponse>(
         `/api/statements/${request.statement_id}/confirm`,
-        { confirmed: request.confirmed }
+        { confirmed: request.confirmed },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
       );
       return response.data;
     } catch (error: any) {

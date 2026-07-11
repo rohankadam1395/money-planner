@@ -12,7 +12,7 @@ import {
 
 export default function PreviewPage() {
   const router = useRouter();
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const statementId = router.query.id as string | undefined;
 
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
@@ -22,6 +22,12 @@ export default function PreviewPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
+    // Check auth first
+    if (!authLoading && !isAuthenticated) {
+      router.push('/auth/login');
+      return;
+    }
+
     const fetchPreview = async () => {
       // Wait for auth to load
       if (authLoading) {
@@ -50,7 +56,7 @@ export default function PreviewPage() {
     };
 
     fetchPreview();
-  }, [statementId, authLoading]);
+  }, [statementId, authLoading, isAuthenticated, router]);
 
   const handleConfirmImport = async () => {
     if (!statementId) return;

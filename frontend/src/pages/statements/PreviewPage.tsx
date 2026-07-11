@@ -1,7 +1,6 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
+import { useAuth } from '@/contexts/AuthContext';
 import { TransactionPreview } from '@/components/TransactionPreview';
 import { ValidationSummary } from '@/components/ValidationSummary';
 import {
@@ -12,9 +11,9 @@ import {
 } from '@/services/statementApi';
 
 export default function PreviewPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const statementId = searchParams.get('id');
+  const { isLoading: authLoading } = useAuth();
+  const statementId = router.query.id as string | undefined;
 
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +23,11 @@ export default function PreviewPage() {
 
   useEffect(() => {
     const fetchPreview = async () => {
+      // Wait for auth to load
+      if (authLoading) {
+        return;
+      }
+
       if (!statementId) {
         setError('No statement ID provided');
         setIsLoading(false);
@@ -46,7 +50,7 @@ export default function PreviewPage() {
     };
 
     fetchPreview();
-  }, [statementId]);
+  }, [statementId, authLoading]);
 
   const handleConfirmImport = async () => {
     if (!statementId) return;

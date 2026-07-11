@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState } from 'react';
 import { FileDropZone } from '@/components/FileDropZone';
 import { BankSelector } from '@/components/BankSelector';

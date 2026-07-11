@@ -22,7 +22,7 @@ export default function StatementsPage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     if (!token) {
       router.push('/auth/login');
     } else {

@@ -31,9 +31,9 @@ export default function StatementsListPage() {
   useEffect(() => {
     const fetchStatements = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('authToken');
         if (!token) {
-          router.push('/statements');
+          router.push('/auth/login');
           return;
         }
 

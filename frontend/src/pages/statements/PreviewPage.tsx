@@ -22,24 +22,25 @@ export default function PreviewPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
-    // Check auth first
-    if (!authLoading && !isAuthenticated) {
+    // Wait for auth to fully load before checking
+    if (authLoading) {
+      return;
+    }
+
+    // Only redirect if auth is done loading and user is NOT authenticated
+    if (!isAuthenticated) {
       router.push('/auth/login');
       return;
     }
 
+    // Auth is ready and user is authenticated, fetch preview
+    if (!statementId) {
+      setError('No statement ID provided');
+      setIsLoading(false);
+      return;
+    }
+
     const fetchPreview = async () => {
-      // Wait for auth to load
-      if (authLoading) {
-        return;
-      }
-
-      if (!statementId) {
-        setError('No statement ID provided');
-        setIsLoading(false);
-        return;
-      }
-
       try {
         setIsLoading(true);
         // Poll for preview with up to 30 seconds timeout

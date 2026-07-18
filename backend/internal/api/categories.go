@@ -1,21 +1,28 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
+	"time"
 
+	"github.com/go-chi/chi/v5"
+	"money-planner/backend/internal/api/middleware"
 	"money-planner/backend/internal/categorization"
 )
 
 // CategoriesHandler handles category-related endpoints
 type CategoriesHandler struct {
 	service *categorization.CategorizationService
+	dbConn  *sql.DB
 }
 
 // NewCategoriesHandler creates a new categories handler
-func NewCategoriesHandler(service *categorization.CategorizationService) *CategoriesHandler {
+func NewCategoriesHandler(service *categorization.CategorizationService, dbConn *sql.DB) *CategoriesHandler {
 	return &CategoriesHandler{
 		service: service,
+		dbConn:  dbConn,
 	}
 }
 
@@ -47,134 +54,118 @@ func (h *CategoriesHandler) HandleGetCategories(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// TODO: In production, this would:
-	// 1. Get all categories from database
-	// 2. Query category_stats table for the requested period
-	// 3. Aggregate transaction counts and spending
-
-	// Stub response with all 10 categories
-	categories := []CategoryWithStats{
-		{
-			ID:              "cat_food",
-			Name:            "Food & Dining",
-			Description:     "Restaurants, food delivery, groceries",
-			Color:           "#FF6B6B",
-			Icon:            "🍔",
-			IsPredefined:    true,
-			TotalSpent:      4500.00,
-			TransactionCount: 24,
-			AverageTransaction: 187.50,
-		},
-		{
-			ID:              "cat_shopping",
-			Name:            "Shopping",
-			Description:     "Retail, clothing, online marketplaces",
-			Color:           "#4ECDC4",
-			Icon:            "🛍️",
-			IsPredefined:    true,
-			TotalSpent:      8000.00,
-			TransactionCount: 15,
-			AverageTransaction: 533.33,
-		},
-		{
-			ID:              "cat_transport",
-			Name:            "Transport",
-			Description:     "Ride-sharing, fuel, transport",
-			Color:           "#45B7D1",
-			Icon:            "🚗",
-			IsPredefined:    true,
-			TotalSpent:      2100.00,
-			TransactionCount: 18,
-			AverageTransaction: 116.67,
-		},
-		{
-			ID:              "cat_housing",
-			Name:            "Housing",
-			Description:     "Rent, property, home maintenance",
-			Color:           "#F7B731",
-			Icon:            "🏠",
-			IsPredefined:    true,
-			TotalSpent:      15000.00,
-			TransactionCount: 3,
-			AverageTransaction: 5000.00,
-		},
-		{
-			ID:              "cat_utilities",
-			Name:            "Utilities",
-			Description:     "Electricity, water, internet, phone",
-			Color:           "#5F27CD",
-			Icon:            "💡",
-			IsPredefined:    true,
-			TotalSpent:      1200.00,
-			TransactionCount: 4,
-			AverageTransaction: 300.00,
-		},
-		{
-			ID:              "cat_entertainment",
-			Name:            "Entertainment",
-			Description:     "Movies, streaming, games, events",
-			Color:           "#EE5A6F",
-			Icon:            "🎬",
-			IsPredefined:    true,
-			TotalSpent:      800.00,
-			TransactionCount: 6,
-			AverageTransaction: 133.33,
-		},
-		{
-			ID:              "cat_income",
-			Name:            "Income",
-			Description:     "Salary, freelance, refunds",
-			Color:           "#2ECC71",
-			Icon:            "💰",
-			IsPredefined:    true,
-			TotalSpent:      0.00,
-			TransactionCount: 0,
-			AverageTransaction: 0.00,
-		},
-		{
-			ID:              "cat_healthcare",
-			Name:            "Healthcare",
-			Description:     "Medical, pharmacy, gym, insurance",
-			Color:           "#FF4757",
-			Icon:            "🏥",
-			IsPredefined:    true,
-			TotalSpent:      600.00,
-			TransactionCount: 2,
-			AverageTransaction: 300.00,
-		},
-		{
-			ID:              "cat_education",
-			Name:            "Education",
-			Description:     "Tuition, courses, books",
-			Color:           "#1E90FF",
-			Icon:            "📚",
-			IsPredefined:    true,
-			TotalSpent:      2000.00,
-			TransactionCount: 1,
-			AverageTransaction: 2000.00,
-		},
-		{
-			ID:              "cat_misc",
-			Name:            "Miscellaneous",
-			Description:     "Gifts, charity, other",
-			Color:           "#95A5A6",
-			Icon:            "📌",
-			IsPredefined:    true,
-			TotalSpent:      300.00,
-			TransactionCount: 3,
-			AverageTransaction: 100.00,
-		},
+	userID, err := middleware.GetUserID(r)
+	if err != nil {
+		http.Error(w, "User not authenticated", http.StatusUnauthorized)
+		return
 	}
 
-	totalSpent := 0.0
-	for _, cat := range categories {
-		totalSpent += cat.TotalSpent
+	// Get period from query params (defaults to current month YYYY-MM)
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		// Default to current month
+		period = time.Now().Format("2006-01")
+	}
+
+	ctx := r.Context()
+
+	// Get all categories from database (T097)
+	rows, err := h.dbConn.QueryContext(ctx,
+		`SELECT id, name, description, color, icon FROM categories ORDER BY name ASC`)
+	if err != nil {
+		http.Error(w, "Failed to retrieve categories", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	categories := []CategoryWithStats{}
+	totalSpentAll := 0.0
+
+	for rows.Next() {
+		var id, name, desc, color, icon string
+		if err := rows.Scan(&id, &name, &desc, &color, &icon); err != nil {
+			continue
+		}
+
+		// Query category_stats for this category in the requested period
+		var totalSpent sql.NullFloat64
+		var transactionCount sql.NullInt64
+		var avgTransaction sql.NullFloat64
+
+		err = h.dbConn.QueryRowContext(ctx,
+			`SELECT COALESCE(total_spent, 0),
+                    COALESCE(transaction_count, 0),
+                    COALESCE(average_transaction, 0)
+             FROM category_stats
+             WHERE user_id = $1 AND category_id = $2 AND period = $3`,
+			userID, id, period,
+		).Scan(&totalSpent, &transactionCount, &avgTransaction)
+
+		// If no stats found, that's okay - use zeros
+		spent := 0.0
+		count := 0
+		avg := 0.0
+
+		if err == nil {
+			if totalSpent.Valid {
+				spent = totalSpent.Float64
+			}
+			if transactionCount.Valid {
+				count = int(transactionCount.Int64)
+			}
+			if avgTransaction.Valid {
+				avg = avgTransaction.Float64
+			}
+		} else if err != sql.ErrNoRows {
+			// Log unexpected errors but continue
+			continue
+		}
+
+		categories = append(categories, CategoryWithStats{
+			ID:                  id,
+			Name:                name,
+			Description:         desc,
+			Color:               color,
+			Icon:                icon,
+			IsPredefined:        true,
+			TotalSpent:          spent,
+			TransactionCount:    count,
+			AverageTransaction:  avg,
+		})
+
+		totalSpentAll += spent
+	}
+
+	// Add uncategorized transactions card
+	var uncatCount int
+	var uncatSpent float64
+	err = h.dbConn.QueryRowContext(ctx,
+		`SELECT COUNT(*), COALESCE(SUM(amount), 0)
+		 FROM transactions t
+		 WHERE t.user_id = $1 AND NOT EXISTS (
+		   SELECT 1 FROM transaction_categories tc WHERE tc.transaction_id = t.transaction_id AND tc.user_id = $1
+		 )`,
+		userID,
+	).Scan(&uncatCount, &uncatSpent)
+	if err == nil && uncatCount > 0 {
+		categories = append(categories, CategoryWithStats{
+			ID:               "uncategorized",
+			Name:             "Uncategorized",
+			Description:      "Transactions without a category",
+			Color:            "#9CA3AF",
+			Icon:             "question",
+			IsPredefined:     false,
+			TotalSpent:       uncatSpent,
+			TransactionCount: uncatCount,
+			AverageTransaction: uncatSpent / float64(uncatCount),
+		})
+		totalSpentAll += uncatSpent
 	}
 
 	response := CategoriesResponse{
 		Categories: categories,
-		Period:     "2024-07",
-		TotalSpent: totalSpent,
+		Period:     period,
+		TotalSpent: totalSpentAll,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -209,17 +200,122 @@ func (h *CategoriesHandler) HandleGetCategoryTransactions(w http.ResponseWriter,
 		return
 	}
 
-	// TODO: In production, this would:
-	// 1. Extract category_id from URL path
-	// 2. Query transaction_categories with filtering/sorting
-	// 3. Join with transactions and categories tables
+	userID, err := middleware.GetUserID(r)
+	if err != nil {
+		http.Error(w, "User not authenticated", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract category_id from URL
+	categoryID := chi.URLParam(r, "id")
+	if categoryID == "" {
+		http.Error(w, "Category ID is required", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+
+	transactions := []CategoryTransaction{}
+	totalSpent := 0.0
+	var categoryName string
+
+	if categoryID == "uncategorized" {
+		categoryName = "Uncategorized"
+		// Query transactions with no category assignment
+		rows, err := h.dbConn.QueryContext(ctx,
+			`SELECT t.transaction_id, t.transaction_date, t.merchant, t.amount
+			 FROM transactions t
+			 WHERE t.user_id = $1 AND NOT EXISTS (
+			   SELECT 1 FROM transaction_categories tc WHERE tc.transaction_id = t.transaction_id
+			 )
+			 ORDER BY t.transaction_date DESC`,
+			userID,
+		)
+		if err != nil {
+			log.Printf("Error querying uncategorized transactions for user %s: %v", userID, err)
+			http.Error(w, "Failed to fetch transactions", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var txnID, date, merchant string
+			var amount float64
+
+			if err := rows.Scan(&txnID, &date, &merchant, &amount); err != nil {
+				continue
+			}
+
+			transactions = append(transactions, CategoryTransaction{
+				TransactionID: txnID,
+				Date:          date,
+				Merchant:      merchant,
+				Amount:        amount,
+				Method:        "none",
+				Confidence:    0,
+			})
+
+			totalSpent += amount
+		}
+	} else {
+		// Get category name for regular categories
+		err = h.dbConn.QueryRowContext(ctx, `SELECT name FROM categories WHERE id = $1`, categoryID).Scan(&categoryName)
+		if err != nil {
+			log.Printf("Error fetching category %s: %v", categoryID, err)
+			http.Error(w, "Category not found", http.StatusNotFound)
+			return
+		}
+
+		// Query transactions in this category
+		rows, err := h.dbConn.QueryContext(ctx,
+			`SELECT tc.transaction_id, t.transaction_date, t.merchant, t.amount, tc.method, tc.llm_provider, tc.confidence
+			 FROM transaction_categories tc
+			 JOIN transactions t ON tc.transaction_id = t.transaction_id
+			 WHERE tc.user_id = $1 AND tc.category_id = $2
+			 ORDER BY t.transaction_date DESC`,
+			userID, categoryID,
+		)
+		if err != nil {
+			log.Printf("Error querying transactions for category %s, user %s: %v", categoryID, userID, err)
+			http.Error(w, "Failed to fetch transactions", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var txnID, date, merchant, method string
+			var amount, confidence float64
+			var llmProvider sql.NullString
+
+			if err := rows.Scan(&txnID, &date, &merchant, &amount, &method, &llmProvider, &confidence); err != nil {
+				continue
+			}
+
+			var llmProviderPtr *string
+			if llmProvider.Valid {
+				llmProviderPtr = &llmProvider.String
+			}
+
+			transactions = append(transactions, CategoryTransaction{
+				TransactionID: txnID,
+				Date:          date,
+				Merchant:      merchant,
+				Amount:        amount,
+				Method:        method,
+				LLMProvider:   llmProviderPtr,
+				Confidence:    confidence,
+			})
+
+			totalSpent += amount
+		}
+	}
 
 	response := CategoryTransactionsResponse{
-		CategoryID:   "cat_food",
-		CategoryName: "Food & Dining",
-		Transactions: []CategoryTransaction{},
-		Total:        0,
-		TotalSpent:   0.0,
+		CategoryID:   categoryID,
+		CategoryName: categoryName,
+		Transactions: transactions,
+		Total:        len(transactions),
+		TotalSpent:   totalSpent,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

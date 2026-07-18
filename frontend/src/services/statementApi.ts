@@ -100,7 +100,7 @@ export const statementApi = {
 
     try {
       const response = await apiClient.post<StatementUploadResponse>(
-        '/api/statements/upload',
+        '/api/v1/statements/upload',
         formData,
         {
           headers: {
@@ -124,7 +124,7 @@ export const statementApi = {
     try {
       const token = localStorage.getItem('authToken');
       const response = await apiClient.get<PreviewResponse>(
-        `/api/statements/${statementId}/preview`,
+        `/api/v1/statements/${statementId}/preview`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
@@ -145,7 +145,7 @@ export const statementApi = {
     try {
       const token = localStorage.getItem('authToken');
       const response = await apiClient.post<ConfirmImportResponse>(
-        `/api/statements/${request.statement_id}/confirm`,
+        `/api/v1/statements/${request.statement_id}/confirm`,
         { confirmed: request.confirmed },
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -165,7 +165,7 @@ export const statementApi = {
   // Get list of user's uploaded statements
   getStatements: async (limit = 10, offset = 0): Promise<Statement[]> => {
     try {
-      const response = await apiClient.get<Statement[]>('/api/statements', {
+      const response = await apiClient.get<Statement[]>('/api/v1/statements', {
         params: { limit, offset },
       });
       return response.data;
@@ -193,7 +193,7 @@ export const statementApi = {
       if (dateStart) params.date_start = dateStart;
       if (dateEnd) params.date_end = dateEnd;
 
-      const response = await apiClient.get<Transaction[]>('/api/transactions', {
+      const response = await apiClient.get<Transaction[]>('/api/v1/transactions', {
         params,
       });
       return response.data;
@@ -212,7 +212,7 @@ export const statementApi = {
     try {
       const token = localStorage.getItem('authToken');
       await apiClient.delete(
-        `/api/statements/${statementId}`,
+        `/api/v1/statements/${statementId}`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }

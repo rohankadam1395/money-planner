@@ -18,6 +18,15 @@ func SetupRoutes(
 	categHandler := NewCategorizationHandler(categService)
 	router.Post("/transactions/categorize", categHandler.HandleCategorize)
 
+	// Category analytics endpoints
+	categoriesHandler := NewCategoriesHandler(categService)
+	router.Get("/categories", categoriesHandler.HandleGetCategories)
+	router.Get("/categories/{id}/transactions", categoriesHandler.HandleGetCategoryTransactions)
+
+	// Recategorization endpoint
+	recategorizeHandler := NewRecategorizeHandler(categService)
+	router.Post("/transactions/{id}/recategorize", recategorizeHandler.HandleRecategorize)
+
 	router.Route("/statements", func(sr chi.Router) {
 		// List statements
 		listHandler := NewListHandler(service)

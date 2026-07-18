@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -68,6 +69,7 @@ func (h *DeleteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	// Delete statement and its transactions
 	if err := h.service.DeleteStatement(statementID); err != nil {
+		log.Printf("Error deleting statement %s for user %s: %v", statementID, userID, err)
 		middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to delete statement", "DELETE_ERROR")
 		return
 	}

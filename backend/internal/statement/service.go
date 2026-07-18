@@ -405,7 +405,7 @@ func (s *StatementService) GetTransactions(statementID string) ([]*Transaction, 
 
 // DeleteStatement deletes a statement and its associated transactions
 func (s *StatementService) DeleteStatement(statementID uuid.UUID) error {
-	// Delete transactions first, then statement
+	// Delete transactions first (which handles cascading to transaction_categories)
 	if err := s.txnRepo.DeleteByStatement(statementID); err != nil {
 		return fmt.Errorf("failed to delete transactions: %w", err)
 	}

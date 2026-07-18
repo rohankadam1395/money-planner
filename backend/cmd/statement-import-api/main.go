@@ -205,7 +205,7 @@ func main() {
 		r.Use(authMiddleware.Handler)
 
 		// Setup statement routes
-		api.SetupRoutes(r, stmtService, categService, logger)
+		api.SetupRoutes(r, stmtService, categService, logger, db.GetConnection())
 	})
 
 	// Start server
@@ -237,6 +237,7 @@ func seedMerchants(conn *sql.DB, logger *logrus.Logger) error {
 		{"Healthcare", "Medical, pharmacy, gym, insurance", "#FF4757", "🏥"},
 		{"Education", "Tuition, courses, books", "#1E90FF", "📚"},
 		{"Miscellaneous", "Gifts, charity, other", "#95A5A6", "📌"},
+		{"Uncategorized", "Transactions that couldn't be automatically categorized", "#999999", "❓"},
 	}
 
 	for _, cat := range categories {

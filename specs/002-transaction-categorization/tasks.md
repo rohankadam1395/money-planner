@@ -268,6 +268,21 @@
 
 ---
 
+## Phase 7: Convergence
+
+**Purpose**: Close gaps between specification and implementation identified after Phases 1-6
+
+### Analytics & Recategorization Database Integration
+
+- [X] T094 Implement HandleRecategorize with database operations per T060 (US3): Query old transaction_category, call UpdateTransactionCategory and CategoryStatsUpsert for both old and new categories, return actual old/new category names from database instead of stubs
+- [X] T095 Implement merchant dictionary learning per T061 (US3): When learn_correction flag is true in recategorize request, insert new entry into merchant_dictionary table with source "user_correction" and method "manual"
+- [X] T096 Implement UpdateCategoryStats method per T057 (US3): Replace placeholder with actual database calls to CategoryStatsUpsert; handle period calculation (YYYY-MM), aggregate totals and counts
+- [X] T097 Implement HandleGetCategories per T058 (US3): Query categories and category_stats from database instead of returning hard-coded stub; support period parameter for month/year filtering
+- [X] T098 Implement HandleGetCategoryTransactions per T059 (US3): Query transaction_categories with GetTransactionsByCategory; join with transactions and merchants; support date_start, date_end, limit filters
+- [X] T099 Create contract tests for recategorization per T063-T067 (Phase 6): Implement categorize_recategorize_test.go, categories_api_test.go with tests for recategorize endpoint, learn_correction flag, category queries, and full analytics journey
+
+---
+
 ## MVP Scope (Phases 1-3, ~2 weeks)
 
 To ship transaction categorization MVP in 1-2 weeks, implement:

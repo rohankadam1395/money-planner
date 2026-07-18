@@ -33,6 +33,8 @@ export default function StatementsListPage() {
       try {
         const token = localStorage.getItem('authToken');
         if (!token) {
+          setError('No authentication token found');
+          setLoading(false);
           router.push('/auth/login');
           return;
         }
@@ -46,21 +48,25 @@ export default function StatementsListPage() {
           }
         );
 
+        const data = await response.json();
+        console.log('Statements API response:', { status: response.status, data });
+
         if (!response.ok) {
-          throw new Error('Failed to fetch statements');
+          throw new Error(data.message || `API Error: ${response.status}`);
         }
 
-        const data: ListResponse = await response.json();
         setStatements(data.data || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error fetching statements');
+        const message = err instanceof Error ? err.message : 'Error fetching statements';
+        console.error('Failed to fetch statements:', message);
+        setError(message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchStatements();
-  }, [router]);
+  }, []);
 
   if (loading) {
     return (

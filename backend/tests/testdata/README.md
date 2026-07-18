@@ -50,6 +50,33 @@ Sample Axis Bank statement with 29 transactions covering:
 
 ---
 
+### `categorization_sample.csv`
+Sample bank statement with merchants for testing **transaction categorization** feature:
+- **Period**: July 1-30, 2026
+- **Starting Balance**: ₹50,000
+- **Ending Balance**: ₹203,889
+- **Transactions**: 29 transactions with known & unknown merchants
+- **Purpose**: Testing rule-based and fuzzy matching categorization
+
+**Key Features** (All merchants seeded in merchant_dictionary):
+- **Food & Dining**: Swiggy, Zomato, Uber Eats (exact & fuzzy: "SWIGGY FD")
+- **Shopping**: Amazon, Flipkart, Shopify
+- **Transport**: Uber, Ola
+- **Entertainment**: Netflix, Spotify
+- **Utilities**: BSNL, Airtel
+- **Healthcare**: Apollo Hospital
+- **Education**: Coursera
+- **Unknown Merchants**: "Unknown Merchant XYZ" (tests uncategorized flow)
+- **Salary & Investments**: Multiple deposits for income testing
+
+**Expected Categorization Results**:
+- 23 transactions with rule-based category (exact merchant match)
+- 1 transaction with fuzzy match (SWIGGY FD → Swiggy → Food)
+- 1 transaction uncategorized (Unknown Merchant XYZ)
+- 4 transactions with no debit/credit (salary/opening/closing)
+
+---
+
 ## Testing Scenarios
 
 ### Scenario 1: Single Bank Upload (HDFC)
@@ -85,6 +112,26 @@ Sample Axis Bank statement with 29 transactions covering:
 1. Upload multiple statements
 2. Query: Filter transactions between 2026-07-10 and 2026-07-20
 3. Expected: ~8-10 transactions in date range per statement
+
+### Scenario 7: Transaction Categorization (Rule-Based MVP)
+1. Upload `categorization_sample.csv`
+2. Go to statement preview
+3. Expected Results:
+   - ✅ Swiggy → Food & Dining (confidence: 1.0, method: rule_based)
+   - ✅ Amazon → Shopping (confidence: 1.0, method: rule_based)
+   - ✅ Zomato → Food & Dining (confidence: 1.0, method: rule_based)
+   - ✅ Uber → Transport (confidence: 1.0, method: rule_based)
+   - ✅ Netflix → Entertainment (confidence: 1.0, method: rule_based)
+   - ✅ BSNL → Utilities (confidence: 1.0, method: rule_based)
+   - ✅ SWIGGY FD DELIVERY → Food & Dining (confidence: 0.85-0.99, method: fuzzy)
+   - ✅ Unknown Merchant XYZ → Uncategorized (confidence: 0.0, method: none)
+4. Validation: Categories shown with badges, confidence scores, and categorization method
+
+### Scenario 8: Fuzzy Matching Accuracy
+1. Upload `categorization_sample.csv`
+2. Verify "SWIGGY FD" (with typo/variation) matches "Swiggy" in merchant dictionary
+3. Expected: Levenshtein distance ≥85% triggers fuzzy match
+4. Validation: Confidence score between 0.85-0.99
 
 ---
 

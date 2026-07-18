@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import { getCategoryStyle } from '@/constants/categories';
 
 // Types for statement operations
 export interface StatementUploadRequest {
@@ -208,14 +209,63 @@ export const statementApi = {
   categorizeTransactions: async (transactions: Transaction[]): Promise<Transaction[]> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await apiClient.post<{ data: Transaction[] }>(
+
+      // Build request payload
+      const req = {
+        transactions: transactions.map((t) => ({
+          id: t.transaction_id,
+          merchant: t.merchant,
+          amount: t.amount,
+          timestamp: new Date(t.transaction_date).getTime() / 1000,
+        })),
+      };
+
+      const response = await apiClient.post<{
+        transactions: Array<{
+          id: string;
+          category: string;
+          confidence: number;
+          method: string;
+          explanation: string;
+        }>;
+        stats: any;
+      }>(
         '/api/transactions/categorize',
-        { transactions },
+        req,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
-      return response.data.data;
+
+      // Map API response back to transactions with category details
+      const categorizeMap = new Map(
+        response.data.transactions.map((c) => [
+          c.id,
+          {
+            name: c.category,
+            confidence: c.confidence,
+            method: c.method as 'rule_based' | 'fuzzy' | 'llm' | 'none',
+          },
+        ])
+      );
+
+      return transactions.map((t) => {
+        const categorization = categorizeMap.get(t.transaction_id);
+        if (categorization) {
+          const { color, icon } = getCategoryStyle(categorization.name);
+          return {
+            ...t,
+            category: {
+              name: categorization.name,
+              color,
+              icon,
+              confidence: categorization.confidence,
+              method: categorization.method,
+            },
+          };
+        }
+        return t;
+      });
     } catch (error: any) {
       console.warn('Categorization failed, returning transactions without categories:', error);
       return transactions;

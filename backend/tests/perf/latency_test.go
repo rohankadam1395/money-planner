@@ -1,7 +1,8 @@
 package perf
 
 import (
-	"io/ioutil"
+	"bytes"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -9,26 +10,25 @@ import (
 	"money-planner/backend/internal/statement"
 )
 
-// BenchmarkCSVParsing benchmarks CSV file parsing performance
+const testAccountHash = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+
 func BenchmarkCSVParsing(b *testing.B) {
 	parser := statement.NewCSVParser()
 
-	// Read sample CSV file
-	csvFile, err := os.Open("../../testdata/hdfc_sample.csv")
+	csvFile, err := os.Open("../testdata/hdfc_sample.csv")
 	if err != nil {
 		b.Fatalf("Failed to open test data: %v", err)
 	}
 	defer csvFile.Close()
 
-	csvData, err := ioutil.ReadAll(csvFile)
+	csvData, err := io.ReadAll(csvFile)
 	if err != nil {
 		b.Fatalf("Failed to read test data: %v", err)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// Create new reader for each iteration
-		reader := os.NewReader(csvData)
+		reader := bytes.NewReader(csvData)
 		_, err := parser.ParseCSV(reader)
 		if err != nil {
 			b.Fatalf("Parsing failed: %v", err)
@@ -36,25 +36,22 @@ func BenchmarkCSVParsing(b *testing.B) {
 	}
 }
 
-// TestUploadLatency verifies upload-to-preview latency is under 10 seconds
 func TestUploadLatency(t *testing.T) {
 	parser := statement.NewCSVParser()
 
-	// Read sample CSV file (typical bank export ~100KB)
-	csvFile, err := os.Open("../../testdata/hdfc_sample.csv")
+	csvFile, err := os.Open("../testdata/hdfc_sample.csv")
 	if err != nil {
 		t.Fatalf("Failed to open test data: %v", err)
 	}
 	defer csvFile.Close()
 
-	// Measure parsing time
 	start := time.Now()
-	csvData, err := ioutil.ReadAll(csvFile)
+	csvData, err := io.ReadAll(csvFile)
 	if err != nil {
 		t.Fatalf("Failed to read test data: %v", err)
 	}
 
-	reader := os.NewReader(csvData)
+	reader := bytes.NewReader(csvData)
 	transactions, err := parser.ParseCSV(reader)
 	if err != nil {
 		t.Fatalf("Parsing failed: %v", err)
@@ -62,7 +59,6 @@ func TestUploadLatency(t *testing.T) {
 
 	elapsed := time.Since(start)
 
-	// Verify latency requirement: <10 seconds for parsing
 	maxLatency := 10 * time.Second
 	if elapsed > maxLatency {
 		t.Errorf("Upload latency exceeded target: %v > %v", elapsed, maxLatency)
@@ -70,20 +66,15 @@ func TestUploadLatency(t *testing.T) {
 
 	t.Logf("Parse time: %v (target: <10s) | Transactions parsed: %d", elapsed, len(transactions))
 
-	// Verify transaction extraction
 	if len(transactions) == 0 {
 		t.Errorf("Expected transactions to be extracted, got 0")
 	}
 }
 
-// TestSyncProcessingLatency validates that synchronous file processing meets SC-001
-// SC-001: User can upload a bank statement and view extracted transactions within 10 seconds
 func TestSyncProcessingLatency(t *testing.T) {
 	parser := statement.NewCSVParser()
-	validator := statement.NewTransactionValidator()
 
-	// Simulate full upload → extract → validate → preview flow
-	csvFile, err := os.Open("../../testdata/hdfc_sample.csv")
+	csvFile, err := os.Open("../testdata/hdfc_sample.csv")
 	if err != nil {
 		t.Fatalf("Failed to open test data: %v", err)
 	}
@@ -91,39 +82,43 @@ func TestSyncProcessingLatency(t *testing.T) {
 
 	start := time.Now()
 
-	// Step 1: Read file
-	csvData, err := ioutil.ReadAll(csvFile)
+	csvData, err := io.ReadAll(csvFile)
 	if err != nil {
 		t.Fatalf("Failed to read test data: %v", err)
 	}
 
-	// Step 2: Parse CSV
-	reader := os.NewReader(csvData)
+	reader := bytes.NewReader(csvData)
 	transactions, err := parser.ParseCSV(reader)
 	if err != nil {
 		t.Fatalf("Parsing failed: %v", err)
 	}
 
-	// Step 3: Validate transactions
-	validatedTxns := []statement.Transaction{}
+	periodStart := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	periodEnd := time.Date(2030, 12, 31, 0, 0, 0, 0, time.UTC)
+	validCount := 0
 	for _, txn := range transactions {
-		if validator.ValidateTransaction(&txn) {
-			validatedTxns = append(validatedTxns, txn)
+		result := statement.ValidateTransaction(&statement.Transaction{
+			TransactionDate:   txn.Date,
+			Merchant:          txn.Merchant,
+			Amount:            txn.Amount,
+			Type:              txn.Type,
+			Currency:          "INR",
+			AccountNumberHash: testAccountHash,
+		}, periodStart, periodEnd)
+		if result.Valid {
+			validCount++
 		}
 	}
 
 	elapsed := time.Since(start)
 
-	// SC-001: Total time should be <10 seconds
 	if elapsed > 10*time.Second {
 		t.Errorf("Sync processing exceeded 10s target: %v", elapsed)
 	}
 
-	// Log results
 	t.Logf("Full upload→parse→validate→preview flow: %v | Valid transactions: %d/%d",
-		elapsed, len(validatedTxns), len(transactions))
+		elapsed, validCount, len(transactions))
 
-	// Acceptance: Synchronous processing meets <10s target
 	if elapsed < 10*time.Second {
 		t.Logf("✓ SC-001 satisfied: Sync processing completes in %v (target: <10s)", elapsed)
 	}

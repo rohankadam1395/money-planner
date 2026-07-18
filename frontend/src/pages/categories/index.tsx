@@ -41,8 +41,9 @@ export default function CategoryDashboard({ period }: CategoryDashboardProps) {
   const fetchCategories = React.useCallback(async () => {
     try {
       setLoading(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       const response = await fetch(
-        `/api/v1/categories?include_stats=true&period=${selectedPeriod}`,
+        `${apiUrl}/api/v1/categories?include_stats=true&period=${selectedPeriod}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -53,7 +54,17 @@ export default function CategoryDashboard({ period }: CategoryDashboardProps) {
       if (!response.ok) throw new Error('Failed to fetch categories');
 
       const data = await response.json();
-      setCategories(data.categories || []);
+      const mapped = (data.categories || []).map((cat: any) => ({
+        id: cat.id,
+        name: cat.name,
+        description: cat.description,
+        color: cat.color,
+        icon: cat.icon,
+        totalSpent: cat.total_spent,
+        transactionCount: cat.transaction_count,
+        averageTransaction: cat.average_transaction,
+      }));
+      setCategories(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load categories');
     } finally {

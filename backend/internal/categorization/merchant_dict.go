@@ -87,31 +87,65 @@ func (md *MerchantDictionary) LookupExact(merchant string) *CategorizationResult
 	return nil
 }
 
-// LookupFuzzy performs a fuzzy match lookup using Levenshtein distance
-// Returns the best match if distance >= threshold (0.85)
+// LookupFuzzy performs a fuzzy match lookup using prefix/contains and Levenshtein distance
 func (md *MerchantDictionary) LookupFuzzy(merchant string) *CategorizationResult {
 	const threshold = 0.85
 
-	lower := strings.ToLower(merchant)
+	lower := strings.ToLower(strings.TrimSpace(merchant))
+	if result := md.lookupPrefixOrContains(lower); result != nil {
+		return result
+	}
+
 	bestMatch := ""
 	bestCategory := ""
 	bestDistance := 0.0
 
-	// Traverse trie to find all merchants and compute distances
 	md.traverseTrie(md.trie.root, lower, threshold, &bestMatch, &bestCategory, &bestDistance)
 
 	if bestDistance >= threshold && bestCategory != "" {
-		result := &CategorizationResult{
+		return &CategorizationResult{
 			Category:      bestCategory,
 			Method:        "fuzzy",
-			Confidence:    bestDistance, // Will be scored by confidencer
+			Confidence:    bestDistance,
 			matchDistance: bestDistance,
 			Reason:        "Fuzzy match: " + bestMatch,
 		}
-		return result
 	}
 
 	return nil
+}
+
+func (md *MerchantDictionary) lookupPrefixOrContains(target string) *CategorizationResult {
+	var bestMatch string
+	var bestCategory string
+
+	var walk func(node *TrieNode)
+	walk = func(node *TrieNode) {
+		if node.isEnd && node.merchant != "" {
+			merchantLower := strings.ToLower(node.merchant)
+			if strings.Contains(target, merchantLower) || strings.HasPrefix(target, merchantLower) {
+				if len(merchantLower) > len(bestMatch) {
+					bestMatch = node.merchant
+					bestCategory = node.category
+				}
+			}
+		}
+		for _, child := range node.children {
+			walk(child)
+		}
+	}
+	walk(md.trie.root)
+
+	if bestCategory == "" {
+		return nil
+	}
+
+	return &CategorizationResult{
+		Category:      bestCategory,
+		Method:        "fuzzy",
+		matchDistance: 0.9,
+		Reason:        "Fuzzy match: " + bestMatch,
+	}
 }
 
 // traverseTrie recursively traverses the trie to find fuzzy matches

@@ -4,139 +4,114 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"money-planner/backend/internal/statement"
 )
 
-// TestOverlapDetection tests detection of overlapping statement periods from the same bank
-// Scenario: User uploads HDFC statement for Jan-Jun 2024, then attempts to upload HDFC Jun-Oct 2024
-// Expected: System detects overlap and handles gracefully
 func TestOverlapDetection(t *testing.T) {
-	// Simulate two statements with overlapping periods
 	stmt1 := &statement.Statement{
-		SourceBank:       "HDFC",
-		StatementPeriod:  "2024-01-01 to 2024-06-30",
-		PeriodStartDate:  "2024-01-01",
-		PeriodEndDate:    "2024-06-30",
-		RowCount:         28,
-		UploadTimestamp:  time.Now(),
-		Status:           "SUCCESS",
+		StatementID:          uuid.New(),
+		BankCode:             "HDFC",
+		StatementPeriodStart: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 6, 30, 0, 0, 0, 0, time.UTC),
+		TransactionCount:     28,
+		UploadedAt:           time.Now(),
+		Status:               "SUCCESS",
 	}
 
 	stmt2 := &statement.Statement{
-		SourceBank:       "HDFC",
-		StatementPeriod:  "2024-06-01 to 2024-10-31",
-		PeriodStartDate:  "2024-06-01",
-		PeriodEndDate:    "2024-10-31",
-		RowCount:         35,
-		UploadTimestamp:  time.Now(),
-		Status:           "SUCCESS",
+		StatementID:          uuid.New(),
+		BankCode:             "HDFC",
+		StatementPeriodStart: time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 10, 31, 0, 0, 0, 0, time.UTC),
+		TransactionCount:     35,
+		UploadedAt:           time.Now(),
+		Status:               "SUCCESS",
 	}
 
-	// Check for overlap: stmt1 ends (Jun 30) overlaps with stmt2 starts (Jun 1)
-	stmt1End, _ := time.Parse("2006-01-02", stmt1.PeriodEndDate)
-	stmt2Start, _ := time.Parse("2006-01-02", stmt2.PeriodStartDate)
+	stmt1End := stmt1.StatementPeriodEnd
+	stmt2Start := stmt2.StatementPeriodStart
 
 	if stmt1End.After(stmt2Start) || stmt1End.Equal(stmt2Start) {
 		t.Logf("✓ Overlap detected: Statement 1 (ends %s) overlaps with Statement 2 (starts %s)",
 			stmt1End.Format("2006-01-02"), stmt2Start.Format("2006-01-02"))
 	} else {
 		t.Errorf("Overlap detection failed: Expected overlap between %s and %s",
-			stmt1.PeriodEndDate, stmt2.PeriodStartDate)
+			stmt1End.Format("2006-01-02"), stmt2Start.Format("2006-01-02"))
 	}
 }
 
-// TestNonOverlappingStatements tests that non-overlapping statements are correctly identified
 func TestNonOverlappingStatements(t *testing.T) {
 	stmt1 := &statement.Statement{
-		SourceBank:      "HDFC",
-		PeriodStartDate: "2024-01-01",
-		PeriodEndDate:   "2024-03-31",
+		BankCode:             "HDFC",
+		StatementPeriodStart: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 3, 31, 0, 0, 0, 0, time.UTC),
 	}
 
 	stmt2 := &statement.Statement{
-		SourceBank:      "HDFC",
-		PeriodStartDate: "2024-04-01",
-		PeriodEndDate:   "2024-06-30",
+		BankCode:             "HDFC",
+		StatementPeriodStart: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 6, 30, 0, 0, 0, 0, time.UTC),
 	}
 
-	// No overlap: stmt1 ends (Mar 31) before stmt2 starts (Apr 1)
-	stmt1End, _ := time.Parse("2006-01-02", stmt1.PeriodEndDate)
-	stmt2Start, _ := time.Parse("2006-01-02", stmt2.PeriodStartDate)
-
-	if stmt1End.Before(stmt2Start) {
+	if stmt1.StatementPeriodEnd.Before(stmt2.StatementPeriodStart) {
 		t.Logf("✓ Non-overlapping statements correctly identified: %s < %s",
-			stmt1.PeriodEndDate, stmt2.PeriodStartDate)
+			stmt1.StatementPeriodEnd.Format("2006-01-02"), stmt2.StatementPeriodStart.Format("2006-01-02"))
 	} else {
 		t.Errorf("Overlap detection failed: Expected no overlap")
 	}
 }
 
-// TestDifferentBankNoOverlapCheck tests that statements from different banks don't trigger overlap detection
 func TestDifferentBankNoOverlapCheck(t *testing.T) {
 	stmt1 := &statement.Statement{
-		SourceBank:      "HDFC",
-		PeriodStartDate: "2024-01-01",
-		PeriodEndDate:   "2024-06-30",
+		BankCode:             "HDFC",
+		StatementPeriodStart: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 6, 30, 0, 0, 0, 0, time.UTC),
 	}
 
 	stmt2 := &statement.Statement{
-		SourceBank:      "ICICI", // Different bank
-		PeriodStartDate: "2024-06-01",
-		PeriodEndDate:   "2024-10-31",
+		BankCode:             "ICICI",
+		StatementPeriodStart: time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 10, 31, 0, 0, 0, 0, time.UTC),
 	}
 
-	// Different banks should not trigger overlap detection
-	if stmt1.SourceBank != stmt2.SourceBank {
+	if stmt1.BankCode != stmt2.BankCode {
 		t.Logf("✓ Different banks correctly excluded from overlap detection: %s vs %s",
-			stmt1.SourceBank, stmt2.SourceBank)
+			stmt1.BankCode, stmt2.BankCode)
 	}
 }
 
-// TestAcceptanceScenario_OverlappingDateRangesUS2 tests US2 acceptance scenario:
-// "Given overlapping date ranges from multiple banks, When user uploads a second statement,
-//  Then system displays all transactions chronologically without duplication errors"
 func TestAcceptanceScenario_OverlappingDateRangesUS2(t *testing.T) {
-	// Simulate DB state: User has uploaded HDFC (Jan-Jun) and ICICI (May-Oct)
-	// Now uploads HDFC (Jun-Sep) which overlaps
-
 	existingHDFC := &statement.Statement{
-		ID:              "stmt-001",
-		SourceBank:      "HDFC",
-		PeriodStartDate: "2024-01-01",
-		PeriodEndDate:   "2024-06-30",
+		StatementID:          uuid.New(),
+		BankCode:             "HDFC",
+		StatementPeriodStart: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 6, 30, 0, 0, 0, 0, time.UTC),
 	}
 
 	existingICICI := &statement.Statement{
-		ID:              "stmt-002",
-		SourceBank:      "ICICI",
-		PeriodStartDate: "2024-05-01",
-		PeriodEndDate:   "2024-10-31",
+		StatementID:          uuid.New(),
+		BankCode:             "ICICI",
+		StatementPeriodStart: time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 10, 31, 0, 0, 0, 0, time.UTC),
 	}
 
 	newHDFC := &statement.Statement{
-		ID:              "stmt-003",
-		SourceBank:      "HDFC",
-		PeriodStartDate: "2024-06-01",
-		PeriodEndDate:   "2024-09-30",
+		StatementID:          uuid.New(),
+		BankCode:             "HDFC",
+		StatementPeriodStart: time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC),
+		StatementPeriodEnd:   time.Date(2024, 9, 30, 0, 0, 0, 0, time.UTC),
 	}
-
-	// Acceptance criteria:
-	// 1. System should allow upload (warn user of overlap but proceed)
-	// 2. Display all transactions from all statements
-	// 3. Chronologically sorted
-	// 4. No duplication errors (handled by duplicate detection service)
 
 	statements := []*statement.Statement{existingHDFC, existingICICI, newHDFC}
 
-	// Verify all statements present
 	if len(statements) != 3 {
 		t.Errorf("Expected 3 statements, got %d", len(statements))
 	}
 
-	// Verify statements are from different banks/periods
 	bankMap := make(map[string]int)
 	for _, stmt := range statements {
-		bankMap[stmt.SourceBank]++
+		bankMap[stmt.BankCode]++
 	}
 
 	if bankMap["HDFC"] != 2 {

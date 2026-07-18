@@ -19,6 +19,8 @@ func TestLLMCategorization(t *testing.T) {
 	service := categorization.NewCategorizationService(merchantDict, confidencer).
 		WithLLMProvider(mockProvider)
 
+	merchantDict.Insert("Swiggy", "Food")
+
 	tests := []struct {
 		name       string
 		merchant   string
@@ -105,6 +107,7 @@ func TestLLMProviderEnvVar(t *testing.T) {
 		WithLLMProvider(provider)
 
 	result := service.CategorizeTransaction(context.Background(), "Test Merchant", 100.0)
+	_ = result
 
 	// Verify the provider name is correct
 	if provider.Name() != "mock" {

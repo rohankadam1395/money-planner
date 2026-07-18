@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -172,7 +173,17 @@ func ListTransactions(w http.ResponseWriter, r *http.Request, queryService *stat
 	// Send response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	// Would use json.Marshal(response) in real implementation
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+// SetupRouter creates a test router with transaction routes registered.
+func SetupRouter() http.Handler {
+	mux := http.NewServeMux()
+	queryService := statement.NewQueryService(nil)
+	RegisterTransactionRoutes(mux, queryService)
+	return mux
 }
 
 // GetBankSummary handles GET /api/transactions/summary/by-bank

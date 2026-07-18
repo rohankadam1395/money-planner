@@ -41,7 +41,8 @@ export default function CategoryDetail() {
   const fetchCategoryDetail = React.useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/v1/categories/${id}/transactions`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/categories/${id}/transactions`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
@@ -56,10 +57,18 @@ export default function CategoryDetail() {
         description: '',
         color: '#4ECDC4',
         icon: '📊',
-        totalSpent: data.total_spent,
-        transactionCount: data.total,
+        totalSpent: data.total_spent || 0,
+        transactionCount: data.total || 0,
       });
-      setTransactions(data.transactions || []);
+      setTransactions((data.transactions || []).map((txn: any) => ({
+        transaction_id: txn.transaction_id,
+        date: txn.date,
+        merchant: txn.merchant,
+        amount: txn.amount,
+        method: txn.method,
+        llm_provider: txn.llm_provider,
+        confidence: txn.confidence,
+      })));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load category');
     } finally {
@@ -69,7 +78,8 @@ export default function CategoryDetail() {
 
   const fetchAllCategories = React.useCallback(async () => {
     try {
-      const response = await fetch('/api/v1/categories', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/categories`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
@@ -97,7 +107,7 @@ export default function CategoryDetail() {
           name: cat.name,
           color: cat.color || '#999',
           icon: categoryIcons[cat.name] || '📊',
-          description: cat.description,
+          description: cat.description || '',
         })
       );
 
@@ -119,7 +129,8 @@ export default function CategoryDetail() {
     learnCorrection: boolean
   ) => {
     try {
-      const response = await fetch(`/api/v1/transactions/${transactionId}/recategorize`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/transactions/${transactionId}/recategorize`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,

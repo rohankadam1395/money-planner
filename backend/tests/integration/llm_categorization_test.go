@@ -8,9 +8,7 @@ import (
 	"money-planner/backend/internal/categorization/providers"
 )
 
-// TestLLMCategorizationEndToEnd tests the full categorization flow with LLM fallback
 func TestLLMCategorizationEndToEnd(t *testing.T) {
-	// Initialize service with mock provider
 	mockProvider := providers.NewMockProvider("mock")
 	merchantDict := categorization.NewMerchantDictionary()
 	confidencer := categorization.NewConfidenceScorer()
@@ -18,47 +16,45 @@ func TestLLMCategorizationEndToEnd(t *testing.T) {
 	service := categorization.NewCategorizationService(merchantDict, confidencer).
 		WithLLMProvider(mockProvider)
 
-	// Pre-populate merchant dictionary
 	merchantDict.Insert("Swiggy", "Food")
 	merchantDict.Insert("Amazon", "Shopping")
 	merchantDict.Insert("Uber", "Transport")
 
-	// Test scenarios
 	tests := []struct {
-		name                string
-		merchant            string
-		amount              float64
-		expectedCategory    string
+		name                  string
+		merchant              string
+		amount                float64
+		expectedCategory      string
 		expectedMinConfidence float64
-		expectedMethod      string
-		shouldUseLLM        bool
+		expectedMethod        string
+		expectLLMProvider     bool
 	}{
 		{
-			name:                "Known merchant uses rule-based",
-			merchant:            "Swiggy",
-			amount:              300.0,
-			expectedCategory:    "Food",
+			name:                  "Known merchant uses rule-based",
+			merchant:              "Swiggy",
+			amount:                300.0,
+			expectedCategory:      "Food",
 			expectedMinConfidence: 0.9,
-			expectedMethod:      "rule_based",
-			shouldUseLLM:        false,
+			expectedMethod:        "rule_based",
+			expectLLMProvider:     false,
 		},
 		{
-			name:                "Unknown merchant falls back to LLM",
-			merchant:            "Aashish Restaurant",
-			amount:              250.0,
-			expectedCategory:    "Uncategorized", // Mock doesn't know this
+			name:                  "Unknown merchant falls back to LLM",
+			merchant:              "Aashish Restaurant",
+			amount:                250.0,
+			expectedCategory:      "Uncategorized",
 			expectedMinConfidence: 0.0,
-			expectedMethod:      "none",
-			shouldUseLLM:        true,
+			expectedMethod:        "llm",
+			expectLLMProvider:     true,
 		},
 		{
-			name:                "Fuzzy match prefers rule-based over LLM",
-			merchant:            "SWIGGY FD",
-			amount:              320.0,
-			expectedCategory:    "Food",
+			name:                  "Partial merchant name falls back to fuzzy match before LLM",
+			merchant:              "SWIGGY FD",
+			amount:                320.0,
+			expectedCategory:      "Food",
 			expectedMinConfidence: 0.85,
-			expectedMethod:      "fuzzy",
-			shouldUseLLM:        false,
+			expectedMethod:        "fuzzy",
+			expectLLMProvider:     false,
 		},
 	}
 
@@ -66,33 +62,28 @@ func TestLLMCategorizationEndToEnd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := service.CategorizeTransaction(context.Background(), tt.merchant, tt.amount)
 
-			// Verify category
 			if result.Category != tt.expectedCategory {
 				t.Errorf("expected category %s, got %s", tt.expectedCategory, result.Category)
 			}
 
-			// Verify confidence
 			if result.Confidence < tt.expectedMinConfidence {
 				t.Errorf("expected confidence >= %f, got %f", tt.expectedMinConfidence, result.Confidence)
 			}
 
-			// Verify method
 			if result.Method != tt.expectedMethod {
 				t.Errorf("expected method %s, got %s", tt.expectedMethod, result.Method)
 			}
 
-			// Verify LLM usage
-			if tt.shouldUseLLM && result.LLMProvider == "" {
-				t.Errorf("expected LLM to be used, but provider is empty")
+			if tt.expectLLMProvider && result.LLMProvider == "" {
+				t.Errorf("expected LLM provider to be set, but provider is empty")
 			}
-			if !tt.shouldUseLLM && result.LLMProvider != "" {
+			if !tt.expectLLMProvider && result.LLMProvider != "" {
 				t.Errorf("expected no LLM usage, but got provider %s", result.LLMProvider)
 			}
 		})
 	}
 }
 
-// TestBatchCategorizationWithLLM tests batch processing with mixed rule/LLM categorization
 func TestBatchCategorizationWithLLM(t *testing.T) {
 	mockProvider := providers.NewMockProvider("mock")
 	merchantDict := categorization.NewMerchantDictionary()
@@ -101,11 +92,9 @@ func TestBatchCategorizationWithLLM(t *testing.T) {
 	service := categorization.NewCategorizationService(merchantDict, confidencer).
 		WithLLMProvider(mockProvider)
 
-	// Seed dictionary
 	merchantDict.Insert("Swiggy", "Food")
 	merchantDict.Insert("Amazon", "Shopping")
 
-	// Batch of mixed known/unknown merchants
 	txns := []categorization.TransactionInput{
 		{ID: "1", Merchant: "Swiggy", Amount: 300.0, Timestamp: 1234567890},
 		{ID: "2", Merchant: "Unknown Restaurant", Amount: 250.0, Timestamp: 1234567891},
@@ -115,30 +104,24 @@ func TestBatchCategorizationWithLLM(t *testing.T) {
 
 	results := service.CategorizeTransactions(context.Background(), txns)
 
-	// Verify batch results
 	if len(results) != 4 {
 		t.Errorf("expected 4 results, got %d", len(results))
 	}
 
-	// Verify first transaction (known)
 	if results[0].Category != "Food" || results[0].Method != "rule_based" {
 		t.Errorf("transaction 1: expected Food/rule_based, got %s/%s", results[0].Category, results[0].Method)
 	}
 
-	// Verify second transaction (unknown, should try LLM)
-	if results[1].Category != "Uncategorized" || results[1].Method != "none" {
-		t.Errorf("transaction 2: expected Uncategorized/none, got %s/%s", results[1].Category, results[1].Method)
+	if results[1].Category != "Uncategorized" || results[1].Method != "llm" {
+		t.Errorf("transaction 2: expected Uncategorized/llm, got %s/%s", results[1].Category, results[1].Method)
 	}
 
-	// Verify third transaction (known)
 	if results[2].Category != "Shopping" || results[2].Method != "rule_based" {
 		t.Errorf("transaction 3: expected Shopping/rule_based, got %s/%s", results[2].Category, results[2].Method)
 	}
 
-	// Count categorization methods
 	ruleBasedCount := 0
 	llmCount := 0
-	noneCount := 0
 
 	for _, r := range results {
 		switch r.Method {
@@ -146,18 +129,17 @@ func TestBatchCategorizationWithLLM(t *testing.T) {
 			ruleBasedCount++
 		case "llm":
 			llmCount++
-		case "none":
-			noneCount++
 		}
 	}
 
-	// Verify expected distribution
 	if ruleBasedCount < 2 {
 		t.Errorf("expected at least 2 rule-based categorizations, got %d", ruleBasedCount)
 	}
+	if llmCount < 2 {
+		t.Errorf("expected at least 2 LLM categorizations, got %d", llmCount)
+	}
 }
 
-// TestLLMConfidenceScores verifies that confidence scores reflect categorization quality
 func TestLLMConfidenceScores(t *testing.T) {
 	merchantDict := categorization.NewMerchantDictionary()
 	confidencer := categorization.NewConfidenceScorer()
@@ -169,10 +151,10 @@ func TestLLMConfidenceScores(t *testing.T) {
 	merchantDict.Insert("Swiggy", "Food")
 
 	tests := []struct {
-		name       string
-		merchant   string
-		minScore   float64
-		maxScore   float64
+		name     string
+		merchant string
+		minScore float64
+		maxScore float64
 	}{
 		{
 			name:     "Exact match has high confidence",
@@ -181,13 +163,13 @@ func TestLLMConfidenceScores(t *testing.T) {
 			maxScore: 1.0,
 		},
 		{
-			name:     "Fuzzy match has medium confidence",
+			name:     "Partial merchant name uses fuzzy match confidence",
 			merchant: "SWIGGY FD",
 			minScore: 0.85,
 			maxScore: 0.99,
 		},
 		{
-			name:     "No match has zero confidence",
+			name:     "Unknown merchant via LLM has zero confidence",
 			merchant: "Unknown Merchant",
 			minScore: 0.0,
 			maxScore: 0.1,

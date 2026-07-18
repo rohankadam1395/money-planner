@@ -94,8 +94,8 @@ func main() {
 	authService := auth.NewAuthService(userRepo, jwtSecret)
 
 	// Auth endpoints (no auth required)
-	router.Post("/api/auth/register", api.RegisterHandler(authService))
-	router.Post("/api/auth/login", api.LoginHandler(authService))
+	router.Post("/api/auth/register", RegisterHandler(authService))
+	router.Post("/api/auth/login", LoginHandler(authService))
 
 	// Initialize statement service with database-backed repositories
 	stmtService := statement.NewStatementService(

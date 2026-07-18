@@ -28,11 +28,11 @@
 
 **Purpose**: Project initialization, directory structure, and basic tooling
 
-- [ ] T001 Create categorization service directories: `backend/internal/categorization/`, `backend/internal/config/`, `frontend/src/pages/categories/`
-- [ ] T002 [P] Add dependencies to `backend/go.mod`: `github.com/spf13/viper` (config), `github.com/stretchr/testify` (testing)
-- [ ] T003 [P] Update `frontend/package.json`: Ensure `vitest`, React Testing Library installed
-- [ ] T004 [P] Configure linting: Update `.golangci.yml` for Go backend, `.eslintrc.json` for frontend
-- [ ] T005 Initialize git branch: `git checkout -b 002-transaction-categorization`
+- [X] T001 Create categorization service directories: `backend/internal/categorization/`, `backend/internal/config/`, `frontend/src/pages/categories/`
+- [X] T002 [P] Add dependencies to `backend/go.mod`: `github.com/spf13/viper` (config), `github.com/stretchr/testify` (testing)
+- [X] T003 [P] Update `frontend/package.json`: Ensure `vitest`, React Testing Library installed
+- [X] T004 [P] Configure linting: Update `.golangci.yml` for Go backend, `.eslintrc.json` for frontend
+- [X] T005 Initialize git branch: `git checkout -b 002-transaction-categorization`
 
 ---
 
@@ -46,10 +46,10 @@
 
 ### Database & Entities
 
-- [ ] T006 Create database migration: `backend/db/migrations/004_create_categories_table.sql` with categories table (ID, name, description, color, icon, is_predefined)
-- [ ] T007 Create database migration: `backend/db/migrations/005_create_merchant_dictionary_table.sql` with merchant_dictionary table (ID, merchant_name, category_id, source, confidence, match_type, frequency)
-- [ ] T008 Create database migration: `backend/db/migrations/006_create_transaction_categories_table.sql` with transaction_categories table (ID, transaction_id, category_id, method, llm_provider, confidence, assigned_at)
-- [ ] T009 Create database migration: `backend/db/migrations/007_create_category_stats_table.sql` with category_stats table (ID, user_id, category_id, period, total_spent, transaction_count, avg_transaction)
+- [X] T006 Create database migration: `backend/db/migrations/004_create_categories_table.sql` with categories table (ID, name, description, color, icon, is_predefined)
+- [X] T007 Create database migration: `backend/db/migrations/005_create_merchant_dictionary_table.sql` with merchant_dictionary table (ID, merchant_name, category_id, source, confidence, match_type, frequency)
+- [X] T008 Create database migration: `backend/db/migrations/006_create_transaction_categories_table.sql` with transaction_categories table (ID, transaction_id, category_id, method, llm_provider, confidence, assigned_at)
+- [X] T009 Create database migration: `backend/db/migrations/007_create_category_stats_table.sql` with category_stats table (ID, user_id, category_id, period, total_spent, transaction_count, avg_transaction)
 - [ ] T010 [P] Generate sqlc stubs: Run `sqlc generate` for new tables in `backend/db/queries/`
 
 ### LLM Provider Abstraction (Phase 4+, Deferred)
@@ -59,15 +59,15 @@
 
 ### Configuration Management (Phase 2 MVP)
 
-- [ ] T016 [P] Create merchant dictionary config in `backend/internal/config/merchants_config.go`: Trie settings, cache size, fuzzy match threshold (0.85)
-- [ ] T017 Create config loading in `backend/internal/config/loader.go`: Load merchant dictionary on startup, validate structure
-- [ ] T018 [P] Add environment variable documentation: Update `backend/.env.example` with MERCHANT_DICT_SIZE, FUZZY_MATCH_THRESHOLD
+- [X] T016 [P] Create merchant dictionary config in `backend/internal/config/merchants_config.go`: Trie settings, cache size, fuzzy match threshold (0.85)
+- [X] T017 Create config loading in `backend/internal/config/loader.go`: Load merchant dictionary on startup, validate structure
+- [X] T018 [P] Add environment variable documentation: Update `backend/.env.example` with MERCHANT_DICT_SIZE, FUZZY_MATCH_THRESHOLD
 
 ### Core Categorization Logic
 
-- [ ] T021 Create categorization service in `backend/internal/categorization/service.go`: CategorizationService struct, constructor with provider + db injection, Categorize method stub
-- [ ] T022 Create merchant dictionary cache in `backend/internal/categorization/merchant_dict.go`: Trie-based lookup, cache loading on startup, exact/fuzzy matching logic (Levenshtein distance ≥85%)
-- [ ] T023 Create confidence scoring in `backend/internal/categorization/confidence.go`: Score mapping - exact match (1.0), fuzzy (0.85-0.99 by Levenshtein distance), uncategorized (0.0). **Acceptance**: Pass contract tests verifying scoring logic for known/fuzzy/unknown merchants
+- [X] T021 Create categorization service in `backend/internal/categorization/service.go`: CategorizationService struct, constructor with provider + db injection, Categorize method stub
+- [X] T022 Create merchant dictionary cache in `backend/internal/categorization/merchant_dict.go`: Trie-based lookup, cache loading on startup, exact/fuzzy matching logic (Levenshtein distance ≥85%)
+- [X] T023 Create confidence scoring in `backend/internal/categorization/confidence.go`: Score mapping - exact match (1.0), fuzzy (0.85-0.99 by Levenshtein distance), uncategorized (0.0). **Acceptance**: Pass contract tests verifying scoring logic for known/fuzzy/unknown merchants
 
 **Checkpoint**: Foundation complete - LLM provider abstraction is pluggable, config is flexible, categorization service skeleton ready. User story work can now begin in parallel.
 

@@ -249,6 +249,7 @@ export const statementApi = {
           confidence: number;
           method: string;
           explanation: string;
+          llm_provider?: string;
         }>;
         stats: any;
       }>(
@@ -267,6 +268,7 @@ export const statementApi = {
             name: c.category,
             confidence: c.confidence,
             method: c.method as 'rule_based' | 'fuzzy' | 'llm' | 'none',
+            llm_provider: c.llm_provider,
           },
         ])
       );
@@ -275,14 +277,18 @@ export const statementApi = {
         const categorization = categorizeMap.get(t.transaction_id);
         if (categorization) {
           const { color, icon } = getCategoryStyle(categorization.name);
+          // Generate category ID from name (e.g., "Food & Dining" -> "cat_food")
+          const categoryId = `cat_${categorization.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
           return {
             ...t,
             category: {
+              id: categoryId,
               name: categorization.name,
               color,
               icon,
               confidence: categorization.confidence,
               method: categorization.method,
+              llm_provider: categorizeMap.get(t.transaction_id)?.llm_provider,
             },
           };
         }

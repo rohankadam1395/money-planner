@@ -31,7 +31,7 @@ See `llm/` subfolder for detailed findings on:
 
 **When planning Phase 005+** (Anomaly Detection, Semantic Search):
 - Refer to embedding models findings in `llm/embedding-models.md`
-- Use performance baselines from `performance/llm-latency.md`
+- Review LLM latency baselines in `llm/ollama-api-integration.md` and `llm/prompt-engineering.md`
 
 **When adding new LLM-powered features**:
 - Use provider abstraction pattern from Phase 002

@@ -226,7 +226,7 @@ func (h *CategoriesHandler) HandleGetCategoryTransactions(w http.ResponseWriter,
 			`SELECT t.transaction_id, t.transaction_date, t.merchant, t.amount
 			 FROM transactions t
 			 WHERE t.user_id = $1 AND NOT EXISTS (
-			   SELECT 1 FROM transaction_categories tc WHERE tc.transaction_id = t.transaction_id
+			   SELECT 1 FROM transaction_categories tc WHERE tc.transaction_id = t.transaction_id AND tc.user_id = $1
 			 )
 			 ORDER BY t.transaction_date DESC`,
 			userID,

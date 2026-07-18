@@ -14,15 +14,6 @@ interface Statement {
   uploaded_at: string;
 }
 
-interface ListResponse {
-  data: Statement[];
-  pagination: {
-    total: number;
-    limit: number;
-    offset: number;
-  };
-}
-
 export default function StatementsListPage() {
   const router = useRouter();
   const [statements, setStatements] = useState<Statement[]>([]);
@@ -68,7 +59,7 @@ export default function StatementsListPage() {
     };
 
     fetchStatements();
-  }, []);
+  }, [router]);
 
   const handleDelete = async (statementId: string) => {
     if (!window.confirm('Are you sure you want to delete this statement? This action cannot be undone.')) {

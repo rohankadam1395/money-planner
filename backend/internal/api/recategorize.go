@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -144,6 +145,13 @@ func (h *RecategorizeHandler) HandleRecategorize(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// Recalculate category stats for both old and new categories
+	period := time.Now().Format("2006-01")
+	if oldCatID.Valid {
+		h.updateCategoryStats(ctx, userIDUUID, oldCatID.String, period)
+	}
+	h.updateCategoryStats(ctx, userIDUUID, req.NewCategoryID, period)
+
 	// Handle merchant dictionary learning if requested (T095)
 	if req.LearnCorrection {
 		merchantName := oldCatName
@@ -176,4 +184,37 @@ func (h *RecategorizeHandler) HandleRecategorize(w http.ResponseWriter, r *http.
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// updateCategoryStats recalculates and updates category stats for a period
+func (h *RecategorizeHandler) updateCategoryStats(ctx context.Context, userID uuid.UUID, categoryID string, period string) {
+	var totalSpent sql.NullFloat64
+	var count sql.NullInt64
+	var avgTransaction sql.NullFloat64
+
+	// Calculate current stats from transactions
+	err := h.dbConn.QueryRowContext(ctx,
+		`SELECT COALESCE(SUM(t.amount), 0), COUNT(*), COALESCE(AVG(t.amount), 0)
+		 FROM transactions t
+		 JOIN transaction_categories tc ON t.transaction_id = tc.transaction_id
+		 WHERE t.user_id = $1 AND tc.category_id = $2 AND DATE_TRUNC('month', t.transaction_date::timestamp)::text LIKE $3 || '%'`,
+		userID, categoryID, period,
+	).Scan(&totalSpent, &count, &avgTransaction)
+
+	if err != nil {
+		return
+	}
+
+	// Upsert into category_stats
+	h.dbConn.ExecContext(ctx,
+		`INSERT INTO category_stats (id, user_id, category_id, period, total_spent, transaction_count, average_transaction, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+		 ON CONFLICT(user_id, category_id, period) DO UPDATE SET
+		   total_spent = EXCLUDED.total_spent,
+		   transaction_count = EXCLUDED.transaction_count,
+		   average_transaction = EXCLUDED.average_transaction,
+		   updated_at = NOW()`,
+		uuid.New(), userID, categoryID, period,
+		totalSpent.Float64, count.Int64, avgTransaction.Float64,
+	)
 }

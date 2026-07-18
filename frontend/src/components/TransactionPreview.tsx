@@ -69,7 +69,7 @@ export function TransactionPreview({
             ) : (
               paginatedTransactions.map((txn, idx) => (
                 <tr
-                  key={txn.id || idx}
+                  key={txn.transaction_id || idx}
                   onClick={() => onSelectTransaction?.(txn)}
                   className="border-b hover:bg-blue-50 transition-colors cursor-pointer"
                 >

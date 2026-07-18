@@ -17,13 +17,11 @@ interface Transaction {
 
 interface TransactionPreviewRowProps {
   transaction: Transaction;
-  onCategoryChange?: (transactionId: string, newCategory: string) => void;
 }
 
 // Component for displaying a single transaction in preview with category
 export const TransactionPreviewRow: React.FC<TransactionPreviewRowProps> = ({
   transaction,
-  onCategoryChange,
 }) => {
   const categoryColors: Record<string, string> = {
     'Food & Dining': '#FF6B6B',

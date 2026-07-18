@@ -26,14 +26,12 @@ interface CategorizationStats {
 interface StatementPreviewTableProps {
   transactions: Transaction[];
   categorizationStats?: CategorizationStats;
-  onCategoryChange?: (transactionId: string, newCategory: string) => void;
 }
 
 // Component for displaying the full statement preview with transactions and categories
 export const StatementPreviewTable: React.FC<StatementPreviewTableProps> = ({
   transactions,
   categorizationStats,
-  onCategoryChange,
 }) => {
   if (!transactions || transactions.length === 0) {
     return (
@@ -126,7 +124,6 @@ export const StatementPreviewTable: React.FC<StatementPreviewTableProps> = ({
               <TransactionPreviewRow
                 key={transaction.transaction_id}
                 transaction={transaction}
-                onCategoryChange={onCategoryChange}
               />
             ))}
           </tbody>

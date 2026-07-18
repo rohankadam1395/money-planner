@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -116,6 +117,20 @@ func main() {
 
 		// Load merchants from database into memory
 		conn := db.GetConnection()
+
+		// Check if merchants table is empty and auto-seed if needed
+		var merchantCount int64
+		err = conn.QueryRow("SELECT COUNT(*) FROM merchant_dictionary").Scan(&merchantCount)
+		if err != nil {
+			logger.WithError(err).Warn("failed to check merchant count")
+		} else if merchantCount == 0 {
+			logger.Info("merchant dictionary is empty, auto-seeding merchants...")
+			if err := seedMerchants(conn, logger); err != nil {
+				logger.WithError(err).Warn("failed to auto-seed merchants")
+			}
+		}
+
+		// Load merchants into memory cache
 		rows, err := conn.Query(`
 			SELECT m.merchant_name, c.name
 			FROM merchant_dictionary m
@@ -125,7 +140,7 @@ func main() {
 			logger.WithError(err).Warn("failed to load merchants from database")
 		} else {
 			defer rows.Close()
-			merchantCount := 0
+			loadedCount := 0
 			for rows.Next() {
 				var merchantName, categoryName string
 				if err := rows.Scan(&merchantName, &categoryName); err != nil {
@@ -133,9 +148,9 @@ func main() {
 					continue
 				}
 				merchantDict.Insert(merchantName, categoryName)
-				merchantCount++
+				loadedCount++
 			}
-			logger.WithField("count", merchantCount).Info("merchants loaded into memory cache")
+			logger.WithField("count", loadedCount).Info("merchants loaded into memory cache")
 		}
 
 		logger.Info("categorization service initialized")
@@ -158,4 +173,71 @@ func main() {
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), router); err != nil {
 		logger.WithError(err).Fatal("failed to start server")
 	}
+}
+
+// seedMerchants auto-seeds categories and merchants on first startup
+func seedMerchants(conn *sql.DB, logger *logrus.Logger) error {
+	// Seed categories first
+	categories := []struct {
+		name  string
+		desc  string
+		color string
+		icon  string
+	}{
+		{"Food & Dining", "Restaurants, food delivery, groceries", "#FF6B6B", "🍔"},
+		{"Shopping", "Retail, clothing, online marketplaces", "#4ECDC4", "🛍️"},
+		{"Transport", "Ride-sharing, fuel, transport", "#45B7D1", "🚗"},
+		{"Housing", "Rent, property, home maintenance", "#F7B731", "🏠"},
+		{"Utilities", "Electricity, water, internet, phone", "#5F27CD", "💡"},
+		{"Entertainment", "Movies, streaming, games, events", "#EE5A6F", "🎬"},
+		{"Income", "Salary, freelance, refunds", "#2ECC71", "💰"},
+		{"Healthcare", "Medical, pharmacy, gym, insurance", "#FF4757", "🏥"},
+		{"Education", "Tuition, courses, books", "#1E90FF", "📚"},
+		{"Miscellaneous", "Gifts, charity, other", "#95A5A6", "📌"},
+	}
+
+	for _, cat := range categories {
+		_, err := conn.Exec(
+			`INSERT INTO categories (id, name, description, color, icon, is_predefined, created_at, updated_at)
+			 VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
+			 ON CONFLICT (name) DO NOTHING`,
+			cat.name, cat.desc, cat.color, cat.icon)
+		if err != nil {
+			logger.WithError(err).Warnf("failed to insert category %s", cat.name)
+		}
+	}
+
+	// Sample merchants to seed
+	merchants := []struct {
+		name     string
+		category string
+	}{
+		{"Swiggy", "Food & Dining"},
+		{"Zomato", "Food & Dining"},
+		{"Amazon", "Shopping"},
+		{"Flipkart", "Shopping"},
+		{"Uber", "Transport"},
+		{"Ola", "Transport"},
+		{"Netflix", "Entertainment"},
+		{"Spotify", "Entertainment"},
+		{"BSNL", "Utilities"},
+		{"Airtel", "Utilities"},
+		{"Apollo Hospital", "Healthcare"},
+		{"Coursera", "Education"},
+	}
+
+	for _, m := range merchants {
+		_, err := conn.Exec(
+			`INSERT INTO merchant_dictionary (id, merchant_name, category_id, source, confidence, match_type, frequency, created_at, updated_at)
+			 SELECT gen_random_uuid(), $1, id, 'auto-seed', 100, 'exact', 0, NOW(), NOW()
+			 FROM categories WHERE name = $2
+			 ON CONFLICT (merchant_name, category_id) DO NOTHING`,
+			m.name, m.category)
+		if err != nil {
+			logger.WithError(err).Warnf("failed to insert merchant %s", m.name)
+		}
+	}
+
+	logger.Info("auto-seeding completed: categories and sample merchants inserted")
+	return nil
 }

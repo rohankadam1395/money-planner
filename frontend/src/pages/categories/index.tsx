@@ -17,19 +17,6 @@ interface CategoryDashboardProps {
   period?: string;
 }
 
-const categoryColors: Record<string, string> = {
-  'Food & Dining': '#FF6B6B',
-  'Shopping': '#4ECDC4',
-  'Transport': '#45B7D1',
-  'Housing': '#F7B731',
-  'Utilities': '#5F27CD',
-  'Entertainment': '#EE5A6F',
-  'Income': '#2ECC71',
-  'Healthcare': '#FF4757',
-  'Education': '#1E90FF',
-  'Miscellaneous': '#95A5A6',
-};
-
 const categoryIcons: Record<string, string> = {
   'Food & Dining': '🍔',
   'Shopping': '🛍️',

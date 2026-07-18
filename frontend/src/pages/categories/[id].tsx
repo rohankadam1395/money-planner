@@ -42,7 +42,7 @@ export default function CategoryDetail() {
       setLoading(true);
       const response = await fetch(`/api/v1/categories/${id}/transactions`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
       });
 
@@ -70,7 +70,7 @@ export default function CategoryDetail() {
     try {
       const response = await fetch('/api/v1/categories', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
       });
 
@@ -121,7 +121,7 @@ export default function CategoryDetail() {
       const response = await fetch(`/api/v1/transactions/${transactionId}/recategorize`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

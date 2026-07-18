@@ -44,7 +44,7 @@ export default function CategoryDashboard({ period }: CategoryDashboardProps) {
         `/api/v1/categories?include_stats=true&period=${selectedPeriod}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           },
         }
       );

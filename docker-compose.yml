@@ -57,6 +57,21 @@ services:
       - money-planner-network
     restart: unless-stopped
 
+  # pgAdmin for database management (optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: money-planner-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - money-planner-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
 

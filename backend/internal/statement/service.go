@@ -402,3 +402,17 @@ func (s *StatementService) GetTransactions(statementID string) ([]*Transaction, 
 	}
 	return s.txnRepo.GetByStatement(id)
 }
+
+// DeleteStatement deletes a statement and its associated transactions
+func (s *StatementService) DeleteStatement(statementID uuid.UUID) error {
+	// Delete transactions first, then statement
+	if err := s.txnRepo.DeleteByStatement(statementID); err != nil {
+		return fmt.Errorf("failed to delete transactions: %w", err)
+	}
+
+	if err := s.stmtRepo.Delete(statementID); err != nil {
+		return fmt.Errorf("failed to delete statement: %w", err)
+	}
+
+	return nil
+}

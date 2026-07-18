@@ -217,3 +217,9 @@ func (sr *StatementRepository) UpdateTransactionCount(statementID uuid.UUID, cou
 	_, err := sr.db.Exec(query, count, time.Now(), statementID)
 	return err
 }
+
+func (sr *StatementRepository) Delete(statementID uuid.UUID) error {
+	query := `DELETE FROM statements WHERE statement_id = $1`
+	_, err := sr.db.Exec(query, statementID)
+	return err
+}

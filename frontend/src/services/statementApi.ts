@@ -205,6 +205,26 @@ export const statementApi = {
     }
   },
 
+  // Delete a statement
+  deleteStatement: async (statementId: string): Promise<void> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      await apiClient.delete(
+        `/api/statements/${statementId}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to delete statement';
+      throw new Error(errorMessage);
+    }
+  },
+
   // Categorize transactions
   categorizeTransactions: async (transactions: Transaction[]): Promise<Transaction[]> => {
     try {

@@ -27,6 +27,7 @@ export default function StatementsListPage() {
   const [statements, setStatements] = useState<Statement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStatements = async () => {
@@ -67,6 +68,23 @@ export default function StatementsListPage() {
 
     fetchStatements();
   }, []);
+
+  const handleDelete = async (statementId: string) => {
+    if (!window.confirm('Are you sure you want to delete this statement? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingId(statementId);
+      await statementApi.deleteStatement(statementId);
+      setStatements(statements.filter((s) => s.statement_id !== statementId));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete statement');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -146,13 +164,20 @@ export default function StatementsListPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">{stmt.uploaded_at}</td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-6 py-4 text-sm flex gap-3">
                       <Link
                         href={`/statements/preview?id=${stmt.statement_id}`}
                         className="text-cyan-600 hover:text-cyan-700 font-bold hover:underline transition-all"
                       >
                         View
                       </Link>
+                      <button
+                        onClick={() => handleDelete(stmt.statement_id)}
+                        disabled={deletingId === stmt.statement_id}
+                        className="text-red-600 hover:text-red-700 font-bold hover:underline transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deletingId === stmt.statement_id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}

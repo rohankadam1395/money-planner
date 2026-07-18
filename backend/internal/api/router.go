@@ -31,9 +31,11 @@ func SetupRoutes(
 		sr.Route("/{id}", func(idr chi.Router) {
 			previewHandler := NewPreviewHandler(service, categService)
 			confirmHandler := NewConfirmHandler(service)
+			deleteHandler := NewDeleteHandler(service)
 
 			idr.Get("/preview", previewHandler.Preview)
 			idr.Post("/confirm", confirmHandler.Confirm)
+			idr.Delete("/", deleteHandler.Delete)
 		})
 	})
 }

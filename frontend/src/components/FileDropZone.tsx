@@ -26,21 +26,6 @@ export function FileDropZone({
     }
   }, []);
 
-  const validateFile = (file: File): string | null => {
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-
-    if (!fileExtension || !acceptedFormats.includes(fileExtension)) {
-      return `Invalid file format. Accepted formats: ${acceptedFormats.join(', ')}`;
-    }
-
-    const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > maxSizeMB) {
-      return `File size exceeds ${maxSizeMB}MB limit`;
-    }
-
-    return null;
-  };
-
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
@@ -50,10 +35,16 @@ export function FileDropZone({
       const files = e.dataTransfer?.files;
       if (files && files.length > 0) {
         const file = files[0];
-        const validationError = validateFile(file);
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
-        if (validationError) {
-          setError(validationError);
+        if (!fileExtension || !acceptedFormats.includes(fileExtension)) {
+          setError(`Invalid file format. Accepted formats: ${acceptedFormats.join(', ')}`);
+          return;
+        }
+
+        const fileSizeMB = file.size / (1024 * 1024);
+        if (fileSizeMB > maxSizeMB) {
+          setError(`File size exceeds ${maxSizeMB}MB limit`);
           return;
         }
 
@@ -69,10 +60,16 @@ export function FileDropZone({
       const files = e.target.files;
       if (files && files.length > 0) {
         const file = files[0];
-        const validationError = validateFile(file);
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
-        if (validationError) {
-          setError(validationError);
+        if (!fileExtension || !acceptedFormats.includes(fileExtension)) {
+          setError(`Invalid file format. Accepted formats: ${acceptedFormats.join(', ')}`);
+          return;
+        }
+
+        const fileSizeMB = file.size / (1024 * 1024);
+        if (fileSizeMB > maxSizeMB) {
+          setError(`File size exceeds ${maxSizeMB}MB limit`);
           return;
         }
 

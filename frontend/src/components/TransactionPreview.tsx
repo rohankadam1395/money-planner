@@ -57,12 +57,15 @@ export function TransactionPreview({
               <th className="px-4 py-2 text-center text-sm font-semibold text-gray-700 border-b">
                 Type
               </th>
+              <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">
+                Category
+              </th>
             </tr>
           </thead>
           <tbody>
             {paginatedTransactions.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                   No transactions to display
                 </td>
               </tr>
@@ -95,6 +98,23 @@ export function TransactionPreview({
                     >
                       {txn.type}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {txn.category ? (
+                      <div className="flex flex-col gap-1">
+                        <div
+                          className="px-2 py-1 rounded text-xs font-semibold text-white w-fit"
+                          style={{ backgroundColor: txn.category.color }}
+                        >
+                          {txn.category.icon} {txn.category.name}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {(txn.category.confidence * 100).toFixed(0)}% • {txn.category.method}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">Uncategorized</span>
+                    )}
                   </td>
                 </tr>
               ))

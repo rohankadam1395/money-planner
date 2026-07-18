@@ -45,7 +45,16 @@ export default function PreviewPage() {
         setIsLoading(true);
         // Poll for preview with up to 30 seconds timeout
         const previewData = await pollStatementPreview(statementId, 30, 1000);
-        setPreview(previewData);
+
+        // Categorize transactions
+        const categorizedTransactions = await statementApi.categorizeTransactions(
+          previewData.transactions
+        );
+
+        setPreview({
+          ...previewData,
+          transactions: categorizedTransactions,
+        });
         setError(null);
       } catch (err: any) {
         const errorMessage = err.message || 'Failed to load statement preview';

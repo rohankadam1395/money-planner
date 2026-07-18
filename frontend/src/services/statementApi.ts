@@ -32,6 +32,13 @@ export interface Transaction {
   imported_at: string;
   created_at: string;
   updated_at: string;
+  category?: {
+    name: string;
+    color: string;
+    icon: string;
+    confidence: number;
+    method: 'rule_based' | 'fuzzy' | 'llm' | 'none';
+  };
 }
 
 export interface ValidationError {
@@ -194,6 +201,24 @@ export const statementApi = {
         error.message ||
         'Failed to fetch transactions';
       throw new Error(errorMessage);
+    }
+  },
+
+  // Categorize transactions
+  categorizeTransactions: async (transactions: Transaction[]): Promise<Transaction[]> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await apiClient.post<{ data: Transaction[] }>(
+        '/api/transactions/categorize',
+        { transactions },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.warn('Categorization failed, returning transactions without categories:', error);
+      return transactions;
     }
   },
 };

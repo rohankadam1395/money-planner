@@ -42,8 +42,6 @@ export const RecategorizeModal: React.FC<RecategorizeModalProps> = ({
     }
   };
 
-  const selectedCategory = categories.find(c => c.id === selectedCategoryId);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">

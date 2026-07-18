@@ -55,22 +55,32 @@ func (h *CategorizationHandler) HandleCategorize(w http.ResponseWriter, r *http.
 	// Build response with statistics
 	responseResults := make([]categorization.CategorizeTransactionResult, len(results))
 	stats := categorization.CategorizationStats{
-		Total:       len(results),
-		ByMethod:    make(map[string]int),
-		Categorized: 0,
+		Total:        len(results),
+		ByMethod:     make(map[string]int),
+		LLMProviders: make(map[string]int),
+		Categorized:  0,
 	}
 
 	totalConfidence := 0.0
 	for i, result := range results {
+		var llmProvider *string
+		if result.LLMProvider != "" {
+			llmProvider = &result.LLMProvider
+		}
+
 		responseResults[i] = categorization.CategorizeTransactionResult{
 			ID:          txns[i].ID,
 			Category:    result.Category,
 			Confidence:  result.Confidence,
 			Method:      result.Method,
+			LLMProvider: llmProvider,
 			Explanation: result.Reason,
 		}
 
 		stats.ByMethod[result.Method]++
+		if result.LLMProvider != "" {
+			stats.LLMProviders[result.LLMProvider]++
+		}
 		if result.Category != "Uncategorized" {
 			stats.Categorized++
 			totalConfidence += result.Confidence

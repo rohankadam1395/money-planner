@@ -6,7 +6,9 @@ interface CategoryBadgeProps {
   icon?: string;
   confidence?: number;
   method?: string;
+  llmProvider?: string;
   size?: 'sm' | 'md' | 'lg';
+  highlighted?: boolean;
 }
 
 // CategoryBadge displays a transaction category with color and icon
@@ -16,7 +18,9 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   icon = '📌',
   confidence,
   method,
+  llmProvider,
   size = 'md',
+  highlighted = false,
 }) => {
   const sizeClasses = {
     sm: 'px-2 py-1 text-xs',
@@ -24,30 +28,39 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
     lg: 'px-4 py-3 text-base',
   };
 
-  const getMethodLabel = (m?: string) => {
+  const getMethodLabel = (m?: string, provider?: string) => {
     if (!m) return '';
-    return ` (${m === 'rule_based' ? 'known' : m === 'fuzzy' ? 'fuzzy' : 'manual'})`;
+    if (m === 'llm' && provider) {
+      return ` (${provider})`;
+    }
+    return ` (${m === 'rule_based' ? 'known' : m === 'fuzzy' ? 'fuzzy' : m === 'llm' ? 'LLM' : 'manual'})`;
   };
+
+  const isLowConfidence = confidence !== undefined && confidence < 0.75;
+  const highlightClass = isLowConfidence && highlighted ? 'ring-2 ring-amber-400 ring-offset-1' : '';
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full font-medium transition-all ${sizeClasses[size]}`}
+      className={`inline-flex items-center gap-2 rounded-full font-medium transition-all ${sizeClasses[size]} ${highlightClass}`}
       style={{
-        backgroundColor: `${color}20`,
-        borderLeft: `3px solid ${color}`,
-        color: color,
+        backgroundColor: isLowConfidence && highlighted ? '#FEF3C7' : `${color}20`,
+        borderLeft: `3px solid ${isLowConfidence && highlighted ? '#F59E0B' : color}`,
+        color: isLowConfidence && highlighted ? '#D97706' : color,
       }}
-      title={confidence ? `Confidence: ${(confidence * 100).toFixed(0)}%` : undefined}
+      title={confidence ? `Confidence: ${(confidence * 100).toFixed(0)}%${llmProvider ? ` (${llmProvider})` : ''}` : undefined}
     >
       <span>{icon}</span>
       <span>
         {name}
-        {getMethodLabel(method)}
+        {getMethodLabel(method, llmProvider)}
       </span>
       {confidence !== undefined && confidence < 1.0 && (
-        <span className="text-xs opacity-75">
+        <span className={`text-xs ${isLowConfidence && highlighted ? 'opacity-100 font-semibold' : 'opacity-75'}`}>
           {(confidence * 100).toFixed(0)}%
         </span>
+      )}
+      {isLowConfidence && highlighted && (
+        <span className="text-xs font-semibold ml-1">⚠️</span>
       )}
     </div>
   );

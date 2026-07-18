@@ -115,29 +115,29 @@
 
 ### Implementation for User Story 2
 
-- [ ] T039 [US2] Implement Ollama provider in `backend/internal/llm/ollama.go`: POST /api/generate with categorization prompt, parse response, handle errors gracefully
-- [ ] T040 [US2] Implement LLM categorization in `backend/internal/categorization/service.go`: CategorizeLLM method calling provider, confidence mapping (Ollama: 0.65-0.80, Claude: 0.85-0.98)
-- [ ] T041 [US2] Update categorization logic in `backend/internal/categorization/service.go`: Categorize method routes to CategorizeRule → if no match, try CategorizeLLM → if LLM fails, default to "Uncategorized"
-- [ ] T042 [US2] Implement graceful degradation: If LLM provider unavailable, log error and return "Uncategorized" without blocking import (see FR-107)
-- [ ] T043 [US2] Add llm_provider field to categorization response in `/api/v1/transactions/categorize`: Return "ollama", "claude", or null for method and llm_provider
-- [ ] T044 [US2] Update stats in /api/categorize response: Include llm_providers map with provider counts (e.g., {"ollama": 5, "claude": 0})
-- [ ] T045 [US2] Implement Claude provider in `backend/internal/llm/claude.go`: Use anthropic-sdk-go (if ANTHROPIC_API_KEY set), request/response mapping, error handling
-- [ ] T046 [P] [US2] Create provider switching logic: Update main.go to select provider based on LLM_PROVIDER env var, log active provider on startup
+- [X] T039 [US2] Implement Ollama provider in `backend/internal/llm/ollama.go`: POST /api/generate with categorization prompt, parse response, handle errors gracefully
+- [X] T040 [US2] Implement LLM categorization in `backend/internal/categorization/service.go`: CategorizeLLM method calling provider, confidence mapping (Ollama: 0.65-0.80, Claude: 0.85-0.98)
+- [X] T041 [US2] Update categorization logic in `backend/internal/categorization/service.go`: Categorize method routes to CategorizeRule → if no match, try CategorizeLLM → if LLM fails, default to "Uncategorized"
+- [X] T042 [US2] Implement graceful degradation: If LLM provider unavailable, log error and return "Uncategorized" without blocking import (see FR-107)
+- [X] T043 [US2] Add llm_provider field to categorization response in `/api/v1/transactions/categorize`: Return "ollama", "claude", or null for method and llm_provider
+- [X] T044 [US2] Update stats in /api/categorize response: Include llm_providers map with provider counts (e.g., {"ollama": 5, "claude": 0})
+- [X] T045 [US2] Implement Claude provider in `backend/internal/llm/claude.go`: Use anthropic-sdk-go (if ANTHROPIC_API_KEY set), request/response mapping, error handling
+- [X] T046 [P] [US2] Create provider switching logic: Update main.go to select provider based on LLM_PROVIDER env var, log active provider on startup
 
 ### Contract Tests for US2
 
-- [ ] T047 [P] [US2] Create contract test `backend/tests/contract/categorize_llm_test.go`: Unknown merchant → LLM-categorized with method "llm" and llm_provider "ollama"
-- [ ] T048 [P] [US2] Create contract test: Mock Ollama timeout → transaction defaults to "Uncategorized" without blocking (206 Partial Content)
-- [ ] T049 [P] [US2] Create contract test: Invalid LLM response → fallback to "Uncategorized" with error logged
-- [ ] T050 [P] [US2] Create contract test: LLM_PROVIDER env var override → provider switches without code changes
-- [ ] T051 [US2] Create integration test `backend/tests/integration/llm_categorization_test.go`: End-to-end with Ollama (or mock), verify confidence scores, verify provider tracking
+- [X] T047 [P] [US2] Create contract test `backend/tests/contract/categorize_llm_test.go`: Unknown merchant → LLM-categorized with method "llm" and llm_provider "ollama"
+- [X] T048 [P] [US2] Create contract test: Mock Ollama timeout → transaction defaults to "Uncategorized" without blocking (206 Partial Content)
+- [X] T049 [P] [US2] Create contract test: Invalid LLM response → fallback to "Uncategorized" with error logged
+- [X] T050 [P] [US2] Create contract test: LLM_PROVIDER env var override → provider switches without code changes
+- [X] T051 [US2] Create integration test `backend/tests/integration/llm_categorization_test.go`: End-to-end with Ollama (or mock), verify confidence scores, verify provider tracking
 
 ### Frontend for US2
 
-- [ ] T052 [P] [US2] Update TransactionPreview component: Show LLM-suggested category with llm_provider indicator (badge showing "Ollama" or "Claude")
-- [ ] T053 [US2] Add LLM suggestion override modal in `frontend/src/pages/statements/PreviewModal.tsx`: Allow user to correct LLM category before confirming
-- [ ] T054 [US2] Add confidence-based highlighting: Highlight low-confidence (< 0.75) LLM suggestions for user review
-- [ ] T055 [US2] Update import confirmation: Show breakdown by categorization method (rule_based, llm, uncategorized counts)
+- [X] T052 [P] [US2] Update TransactionPreview component: Show LLM-suggested category with llm_provider indicator (badge showing "Ollama" or "Claude")
+- [X] T053 [US2] Add LLM suggestion override modal in `frontend/src/pages/statements/PreviewModal.tsx`: Allow user to correct LLM category before confirming
+- [X] T054 [US2] Add confidence-based highlighting: Highlight low-confidence (< 0.75) LLM suggestions for user review
+- [X] T055 [US2] Update import confirmation: Show breakdown by categorization method (rule_based, llm, uncategorized counts)
 
 **Checkpoint**: User Stories 1 AND 2 complete. Known merchants use fast rule-based, unknown merchants use Ollama/configurable LLM. Provider abstraction enables easy switching (env var only).
 
@@ -153,9 +153,9 @@
 
 - [ ] T056 [P] [US3] Create CategoryStats model in `backend/internal/categorization/models.go`: CategoryStats struct with user_id, category_id, period, total_spent, transaction_count, avg_transaction
 - [ ] T057 [US3] Implement category stats aggregation in `backend/internal/categorization/service.go`: UpdateCategoryStats method calculating totals per category per month (trigger on transaction confirm or recategorize)
-- [ ] T058 [US3] Create /api/v1/categories endpoint in `backend/internal/api/categories.go`: GET handler returning all categories with stats (period parameter, include_stats query param)
-- [ ] T059 [US3] Create /api/v1/categories/{id}/transactions endpoint in `backend/internal/api/categories.go`: GET handler returning transactions in category with sort/filter (date_start, date_end, limit, sort_by)
-- [ ] T060 [US3] Implement /api/v1/transactions/{id}/recategorize endpoint in `backend/internal/api/recategorize.go`: POST handler accepting new category_id, updates transaction_categories, updates category_stats, returns old/new category info
+- [X] T058 [US3] Create /api/v1/categories endpoint in `backend/internal/api/categories.go`: GET handler returning all categories with stats (period parameter, include_stats query param)
+- [X] T059 [US3] Create /api/v1/categories/{id}/transactions endpoint in `backend/internal/api/categories.go`: GET handler returning transactions in category with sort/filter (date_start, date_end, limit, sort_by)
+- [X] T060 [US3] Implement /api/v1/transactions/{id}/recategorize endpoint in `backend/internal/api/recategorize.go`: POST handler accepting new category_id, updates transaction_categories, updates category_stats, returns old/new category info
 - [ ] T061 [US3] Implement merchant dictionary learning in `backend/internal/categorization/service.go`: If learn_correction flag set, insert user's correction into merchant_dictionary with source "user_correction"
 - [ ] T062 [US3] Add category queries in `backend/db/queries/categories.sql`: Queries for GetCategoryStats, GetTransactionsByCategory, UpdateCategoryStats
 

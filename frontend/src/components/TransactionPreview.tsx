@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
 import { Transaction } from '@/services/statementApi';
+import RecategorizeModal from './RecategorizeModal';
 
 interface TransactionPreviewProps {
   transactions: Transaction[];
   pageSize?: number;
   onSelectTransaction?: (transaction: Transaction) => void;
+  onRecategorize?: (transactionId: string, newCategoryId: string, learnCorrection: boolean) => Promise<void>;
+  categories?: any[];
 }
 
 export function TransactionPreview({
   transactions,
   pageSize = 10,
   onSelectTransaction,
+  onRecategorize,
+  categories = [],
 }: TransactionPreviewProps) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [recategorizeModal, setRecategorizeModal] = useState<{
+    isOpen: boolean;
+    transaction?: Transaction;
+  }>({ isOpen: false });
+  const [isRecategorizing, setIsRecategorizing] = useState(false);
 
   const totalPages = Math.ceil(transactions.length / pageSize);
   const startIndex = currentPage * pageSize;
@@ -101,19 +111,53 @@ export function TransactionPreview({
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {txn.category ? (
-                      <div className="flex flex-col gap-1">
+                      <div className={`flex flex-col gap-2 ${
+                        txn.category.confidence < 0.75 ? 'p-2 bg-amber-50 rounded-lg' : ''
+                      }`}>
                         <div
-                          className="px-2 py-1 rounded text-xs font-semibold text-white w-fit"
-                          style={{ backgroundColor: txn.category.color }}
+                          className={`px-2 py-1 rounded text-xs font-semibold text-white w-fit ${
+                            txn.category.confidence < 0.75 ? 'ring-2 ring-amber-400' : ''
+                          }`}
+                          style={{
+                            backgroundColor: txn.category.confidence < 0.75 ? '#F59E0B' : txn.category.color
+                          }}
                         >
                           {txn.category.icon} {txn.category.name}
+                          {txn.category.confidence < 0.75 && ' ⚠️'}
                         </div>
-                        <div className="text-xs text-gray-600">
-                          {(txn.category.confidence * 100).toFixed(0)}% • {txn.category.method}
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-gray-600">
+                            {(txn.category.confidence * 100).toFixed(0)}% • {txn.category.method}
+                            {txn.category.llm_provider && ` (${txn.category.llm_provider})`}
+                          </div>
+                          {onRecategorize && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRecategorizeModal({ isOpen: true, transaction: txn });
+                              }}
+                              className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            >
+                              Edit
+                            </button>
+                          )}
                         </div>
                       </div>
                     ) : (
-                      <span className="text-xs text-gray-400">Uncategorized</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">Uncategorized</span>
+                        {onRecategorize && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRecategorizeModal({ isOpen: true, transaction: txn });
+                            }}
+                            className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          >
+                            Categorize
+                          </button>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -122,6 +166,38 @@ export function TransactionPreview({
           </tbody>
         </table>
       </div>
+
+      {/* Recategorize Modal */}
+      {recategorizeModal.transaction && (
+        <RecategorizeModal
+          isOpen={recategorizeModal.isOpen}
+          transaction={{
+            id: recategorizeModal.transaction.transaction_id || '',
+            merchant: recategorizeModal.transaction.merchant || 'Unknown',
+            amount: recategorizeModal.transaction.amount,
+            currentCategory: recategorizeModal.transaction.category?.name || 'Uncategorized',
+            currentCategoryId: recategorizeModal.transaction.category?.id || '',
+          }}
+          categories={categories}
+          onConfirm={async (newCategoryId, learnCorrection) => {
+            if (onRecategorize && recategorizeModal.transaction) {
+              setIsRecategorizing(true);
+              try {
+                await onRecategorize(
+                  recategorizeModal.transaction.transaction_id || '',
+                  newCategoryId,
+                  learnCorrection
+                );
+                setRecategorizeModal({ isOpen: false });
+              } finally {
+                setIsRecategorizing(false);
+              }
+            }
+          }}
+          onCancel={() => setRecategorizeModal({ isOpen: false })}
+          isLoading={isRecategorizing}
+        />
+      )}
 
       {/* Pagination controls */}
       {totalPages > 1 && (

@@ -14,6 +14,7 @@ import (
 	apimiddleware "money-planner/backend/internal/api/middleware"
 	"money-planner/backend/internal/auth"
 	"money-planner/backend/internal/categorization"
+	"money-planner/backend/internal/categorization/providers"
 	"money-planner/backend/internal/config"
 	dbpkg "money-planner/backend/internal/db"
 	"money-planner/backend/internal/db/migrations"
@@ -114,6 +115,48 @@ func main() {
 		confidencer := categorization.NewConfidenceScorer()
 		categService = categorization.NewCategorizationService(merchantDict, confidencer)
 		config.LogConfig(categConfig)
+
+		// Initialize LLM provider if configured
+		llmProvider := os.Getenv("LLM_PROVIDER")
+		if llmProvider != "" {
+			switch llmProvider {
+			case "ollama":
+				ollamaURL := os.Getenv("OLLAMA_URL")
+				if ollamaURL == "" {
+					ollamaURL = "http://localhost:11434"
+				}
+				ollamaModel := os.Getenv("OLLAMA_MODEL")
+				if ollamaModel == "" {
+					ollamaModel = "mistral"
+				}
+				provider := providers.NewOllamaProvider(ollamaURL, ollamaModel)
+				categService.WithLLMProvider(provider)
+				logger.WithFields(logrus.Fields{
+					"provider": "ollama",
+					"url":      ollamaURL,
+					"model":    ollamaModel,
+				}).Info("LLM provider initialized")
+
+			case "claude":
+				claudeAPIKey := os.Getenv("ANTHROPIC_API_KEY")
+				if claudeAPIKey == "" {
+					logger.Warn("ANTHROPIC_API_KEY not set, Claude provider will be unavailable")
+				} else {
+					claudeModel := os.Getenv("CLAUDE_MODEL")
+					provider := providers.NewClaudeProvider(claudeAPIKey, claudeModel)
+					categService.WithLLMProvider(provider)
+					logger.WithFields(logrus.Fields{
+						"provider": "claude",
+						"model":    claudeModel,
+					}).Info("LLM provider initialized")
+				}
+
+			default:
+				logger.WithField("provider", llmProvider).Warn("unknown LLM provider, categorization will use rule-based only")
+			}
+		} else {
+			logger.Info("no LLM provider configured (LLM_PROVIDER env var not set), using rule-based categorization only")
+		}
 
 		// Load merchants from database into memory
 		conn := db.GetConnection()

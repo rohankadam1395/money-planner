@@ -80,11 +80,12 @@ type CategorizeResponse struct {
 
 // CategorizeTransactionResult represents a categorized transaction
 type CategorizeTransactionResult struct {
-	ID         string  `json:"id"`
-	Category   string  `json:"category"`
-	Confidence float64 `json:"confidence"`
-	Method     string  `json:"method"`
-	Explanation string `json:"explanation"`
+	ID          string  `json:"id"`
+	Category    string  `json:"category"`
+	Confidence  float64 `json:"confidence"`
+	Method      string  `json:"method"`
+	LLMProvider *string `json:"llm_provider,omitempty"`
+	Explanation string  `json:"explanation"`
 }
 
 // CategorizationStats provides summary of categorization results
@@ -93,5 +94,6 @@ type CategorizationStats struct {
 	Categorized     int            `json:"categorized"`
 	Uncategorized   int            `json:"uncategorized"`
 	ByMethod        map[string]int `json:"by_method"`
+	LLMProviders    map[string]int `json:"llm_providers,omitempty"`
 	AvgConfidence   float64        `json:"avg_confidence"`
 }

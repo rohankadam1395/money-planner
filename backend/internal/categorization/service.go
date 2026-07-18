@@ -3,12 +3,14 @@ package categorization
 import (
 	"context"
 	"fmt"
+	"log"
 )
 
 // CategorizationService handles transaction categorization
 type CategorizationService struct {
 	merchantDict *MerchantDictionary
 	confidencer  *ConfidenceScorer
+	llmProvider  LLMProvider
 }
 
 // NewCategorizationService creates a new categorization service
@@ -16,10 +18,17 @@ func NewCategorizationService(merchantDict *MerchantDictionary, confidencer *Con
 	return &CategorizationService{
 		merchantDict: merchantDict,
 		confidencer:  confidencer,
+		llmProvider:  nil,
 	}
 }
 
-// CategorizeTransaction categorizes a single transaction
+// WithLLMProvider adds an LLM provider to the service
+func (s *CategorizationService) WithLLMProvider(provider LLMProvider) *CategorizationService {
+	s.llmProvider = provider
+	return s
+}
+
+// CategorizeTransaction categorizes a single transaction with rule-based or LLM fallback
 func (s *CategorizationService) CategorizeTransaction(ctx context.Context, merchant string, amount float64) *CategorizationResult {
 	if merchant == "" {
 		return &CategorizationResult{
@@ -49,12 +58,49 @@ func (s *CategorizationService) CategorizeTransaction(ctx context.Context, merch
 		return result
 	}
 
-	// No match found
+	// Try LLM categorization if available
+	if s.llmProvider != nil {
+		return s.CategorizeLLM(ctx, merchant, amount)
+	}
+
+	// No match found and no LLM available
 	return &CategorizationResult{
 		Category:   "Uncategorized",
 		Method:     "none",
 		Confidence: 0.0,
 		Reason:     fmt.Sprintf("No matching merchant for: %s", merchant),
+	}
+}
+
+// CategorizeLLM categorizes a transaction using the LLM provider with graceful degradation
+func (s *CategorizationService) CategorizeLLM(ctx context.Context, merchant string, amount float64) *CategorizationResult {
+	if s.llmProvider == nil {
+		return &CategorizationResult{
+			Category:   "Uncategorized",
+			Method:     "none",
+			Confidence: 0.0,
+			Reason:     "LLM provider not available",
+		}
+	}
+
+	category, confidence, explanation, err := s.llmProvider.Categorize(ctx, merchant, amount)
+	if err != nil {
+		log.Printf("LLM categorization failed for merchant %s: %v", merchant, err)
+		return &CategorizationResult{
+			Category:   "Uncategorized",
+			Method:     "none",
+			Confidence: 0.0,
+			Reason:     fmt.Sprintf("LLM error (graceful degradation): %v", err),
+		}
+	}
+
+	return &CategorizationResult{
+		Category:      category,
+		Method:        "llm",
+		Confidence:    confidence,
+		Reason:        explanation,
+		LLMProvider:   s.llmProvider.Name(),
+		matchDistance: 0.0,
 	}
 }
 
@@ -81,5 +127,6 @@ type CategorizationResult struct {
 	Method        string
 	Confidence    float64
 	Reason        string
+	LLMProvider   string
 	matchDistance float64 // internal field for fuzzy matching
 }

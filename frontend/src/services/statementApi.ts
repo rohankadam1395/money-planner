@@ -34,11 +34,13 @@ export interface Transaction {
   created_at: string;
   updated_at: string;
   category?: {
+    id: string;
     name: string;
     color: string;
     icon: string;
     confidence: number;
     method: 'rule_based' | 'fuzzy' | 'llm' | 'none';
+    llm_provider?: string;
   };
 }
 

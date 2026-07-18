@@ -35,6 +35,9 @@ export default function Navbar() {
             <Link href="/statements/list" className="text-white/90 hover:text-white font-medium transition-colors">
               📊 My Statements
             </Link>
+            <Link href="/categories" className="text-white/90 hover:text-white font-medium transition-colors">
+              📈 Categories
+            </Link>
             <Link href="/statements" className="text-white/90 hover:text-white font-medium transition-colors">
               📤 Upload
             </Link>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
 import RecategorizeModal, { Category as ModalCategory } from '@/components/RecategorizeModal';
+import Navbar from '@/components/Navbar';
 
 interface CategoryTransaction {
   transaction_id: string;
@@ -170,8 +171,10 @@ export default function CategoryDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-      <div className="max-w-7xl mx-auto">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <a
@@ -324,7 +327,8 @@ export default function CategoryDetail() {
             onCancel={() => setRecategorizeModal({ isOpen: false })}
           />
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
 
 interface CategoryStat {
   id: string;
@@ -74,8 +75,10 @@ export default function CategoryDashboard({ period }: CategoryDashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-      <div className="max-w-7xl mx-auto">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+        <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Category Analytics</h1>
           <p className="text-slate-600">View your spending by category</p>
@@ -193,7 +196,8 @@ export default function CategoryDashboard({ period }: CategoryDashboardProps) {
             </div>
           </>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

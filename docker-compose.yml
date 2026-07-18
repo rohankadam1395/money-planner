@@ -8,12 +8,11 @@ services:
     environment:
       POSTGRES_USER: money_planner
       POSTGRES_PASSWORD: dev_password
-      POSTGRES_DB: money_planner_db
+      POSTGRES_DB: money_planner
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U money_planner"]
       interval: 10s
@@ -29,7 +28,7 @@ services:
       dockerfile: Dockerfile
     container_name: money-planner-backend
     environment:
-      DATABASE_URL: postgres://money_planner:dev_password@postgres:5432/money_planner_db?sslmode=disable
+      DATABASE_URL: postgres://money_planner:dev_password@postgres:5432/money_planner?sslmode=disable
       JWT_SECRET: your_jwt_secret_key_here_change_in_production
       PORT: 8080
     ports:
@@ -58,17 +57,13 @@ services:
       - money-planner-network
     restart: unless-stopped
 
-  # pgAdmin for database management (optional)
+  # pgAdmin for database management
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: money-planner-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
-      SCRIPT_NAME: /pgadmin
-      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: 'False'
-      PGADMIN_CONFIG_COOKIE_DEFAULT_SECURE: 'False'
-      PGADMIN_CONFIG_COOKIE_SAMESITE: 'Lax'
     ports:
       - "5050:80"
     depends_on:

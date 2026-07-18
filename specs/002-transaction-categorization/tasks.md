@@ -169,12 +169,12 @@
 
 ### Frontend for US3
 
-- [ ] T068 [P] [US3] Create CategoryDashboard page in `frontend/src/pages/categories/CategoryDashboard.tsx`: Table/cards showing all categories with spending totals, transaction counts, month/year selector
-- [ ] T069 [P] [US3] Create CategoryDetail page in `frontend/src/pages/categories/CategoryDetail.tsx`: List transactions in category, sort/filter by date/amount, show categorization method + confidence
-- [ ] T070 [P] [US3] Create RecategorizeModal in `frontend/src/pages/categories/RecategorizeModal.tsx`: Dropdown to select new category, toggle "learn_correction" checkbox, submit
-- [ ] T071 [US3] Add category navigation in `frontend/src/components/Navbar.tsx`: Link to categories dashboard from main nav
-- [ ] T072 [P] [US3] Add category colors to UI: Use category.color field to display colored badges/bars in dashboard
-- [ ] T073 [US3] Implement category stats refresh: After recategorization, update dashboard totals in real-time (refetch /api/categories endpoint)
+- [X] T068 [P] [US3] Create CategoryDashboard page in `frontend/src/pages/categories/index.tsx`: Grid/cards showing all categories with spending totals, transaction counts, month/year selector
+- [X] T069 [P] [US3] Create CategoryDetail page in `frontend/src/pages/categories/[id].tsx`: List transactions in category with date/merchant/amount/method/confidence columns, drill-down with recategorization
+- [X] T070 [P] [US3] Integrated RecategorizeModal from components: Dropdown to select new category, toggle "learn_correction" checkbox, submit
+- [X] T071 [US3] Add category navigation in `frontend/src/components/Navbar.tsx`: Link to categories dashboard from main nav
+- [X] T072 [P] [US3] Add category colors to UI: Use category.color field to display colored badges/bars in dashboard, border-left styling
+- [X] T073 [US3] Implement category stats refresh: fetchCategoryDetail refetches /api/v1/categories endpoint after recategorization for real-time updates
 
 **Checkpoint**: All three user stories complete. Full categorization feature with rule-based, LLM fallback, analytics, and recategorization working independently.
 

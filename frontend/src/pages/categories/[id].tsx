@@ -37,13 +37,36 @@ export default function CategoryDetail() {
     transaction?: CategoryTransaction;
   }>({ isOpen: false });
 
-  useEffect(() => {
-    if (!isAuthenticated || !id) return;
-    fetchCategoryDetail();
-    fetchAllCategories();
-  }, [isAuthenticated, id]);
+  const fetchCategoryDetail = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/v1/categories/${id}/transactions`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
 
-  const fetchAllCategories = async () => {
+      if (!response.ok) throw new Error('Failed to fetch category details');
+
+      const data = await response.json();
+      setCategory({
+        id: data.category_id,
+        name: data.category_name,
+        description: '',
+        color: '#4ECDC4',
+        icon: '📊',
+        totalSpent: data.total_spent,
+        transactionCount: data.total,
+      });
+      setTransactions(data.transactions || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load category');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const fetchAllCategories = React.useCallback(async () => {
     try {
       const response = await fetch('/api/v1/categories', {
         headers: {
@@ -81,36 +104,13 @@ export default function CategoryDetail() {
     } catch (err) {
       console.error('Failed to fetch categories:', err);
     }
-  }
+  }, []);
 
-  const fetchCategoryDetail = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/v1/categories/${id}/transactions`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch category details');
-
-      const data = await response.json();
-      setCategory({
-        id: data.category_id,
-        name: data.category_name,
-        description: '',
-        color: '#4ECDC4',
-        icon: '📊',
-        totalSpent: data.total_spent,
-        transactionCount: data.total,
-      });
-      setTransactions(data.transactions || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load category');
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    if (!isAuthenticated || !id) return;
+    fetchCategoryDetail();
+    fetchAllCategories();
+  }, [isAuthenticated, id, fetchCategoryDetail, fetchAllCategories]);
 
   const handleRecategorize = async (
     transactionId: string,

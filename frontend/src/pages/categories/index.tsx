@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import Link from 'next/link';
 
 interface CategoryStat {
@@ -51,13 +50,7 @@ export default function CategoryDashboard({ period }: CategoryDashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState(period || '2026-07');
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    fetchCategories();
-  }, [isAuthenticated, selectedPeriod]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = React.useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(
@@ -78,7 +71,12 @@ export default function CategoryDashboard({ period }: CategoryDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedPeriod]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchCategories();
+  }, [isAuthenticated, fetchCategories]);
 
   if (!isAuthenticated) {
     return (

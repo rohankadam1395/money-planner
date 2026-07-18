@@ -1,0 +1,4 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+npm run lint && cd ../backend && go build ./cmd/statement-import-api

@@ -171,22 +171,25 @@ func isHTMLOrScript(s string) bool {
 }
 
 type Transaction struct {
-	TransactionID     string                 `json:"transaction_id"`
-	UserID            string                 `json:"user_id"`
-	StatementID       string                 `json:"statement_id"`
-	TransactionDate   time.Time              `json:"transaction_date"`
-	Merchant          string                 `json:"merchant"`
-	Amount            float64                `json:"amount"`
-	Type              string                 `json:"type"`
-	Balance           *float64               `json:"balance,omitempty"`
-	Description       string                 `json:"description,omitempty"`
-	Currency          string                 `json:"currency,omitempty"`
-	BankCode          string                 `json:"bank_code,omitempty"`
-	AccountNumberHash string                 `json:"account_number_hash,omitempty"`
-	RawData           map[string]interface{} `json:"raw_data,omitempty"`
-	ImportedAt        time.Time              `json:"imported_at"`
-	CreatedAt         time.Time              `json:"created_at"`
-	UpdatedAt         time.Time              `json:"updated_at"`
+	TransactionID      string                 `json:"transaction_id"`
+	UserID             string                 `json:"user_id"`
+	StatementID        string                 `json:"statement_id"`
+	TransactionDate    time.Time              `json:"transaction_date"`
+	Merchant           string                 `json:"merchant"`
+	Amount             float64                `json:"amount"`
+	Type               string                 `json:"type"`
+	Balance            *float64               `json:"balance,omitempty"`
+	Description        string                 `json:"description,omitempty"`
+	Currency           string                 `json:"currency,omitempty"`
+	BankCode           string                 `json:"bank_code,omitempty"`
+	AccountNumberHash  string                 `json:"account_number_hash,omitempty"`
+	RawData            map[string]interface{} `json:"raw_data,omitempty"`
+	ImportedAt         time.Time              `json:"imported_at"`
+	CreatedAt          time.Time              `json:"created_at"`
+	UpdatedAt          time.Time              `json:"updated_at"`
+	Category           string                 `json:"category,omitempty"`
+	CategoryConfidence float64                `json:"category_confidence,omitempty"`
+	CategoryMethod     string                 `json:"category_method,omitempty"`
 }
 
 // RawTransaction represents a transaction extracted from a statement file before validation

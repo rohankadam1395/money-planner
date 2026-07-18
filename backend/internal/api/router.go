@@ -3,11 +3,17 @@ package api
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
+	"money-planner/backend/internal/categorization"
 	"money-planner/backend/internal/statement"
 )
 
 // SetupRoutes configures all API routes
-func SetupRoutes(router chi.Router, service *statement.StatementService, logger *logrus.Logger) {
+func SetupRoutes(
+	router chi.Router,
+	service *statement.StatementService,
+	categService *categorization.CategorizationService,
+	logger *logrus.Logger,
+) {
 	router.Route("/statements", func(sr chi.Router) {
 		// List statements
 		listHandler := NewListHandler(service)
@@ -19,7 +25,7 @@ func SetupRoutes(router chi.Router, service *statement.StatementService, logger 
 
 		// Preview and confirm endpoints
 		sr.Route("/{id}", func(idr chi.Router) {
-			previewHandler := NewPreviewHandler(service)
+			previewHandler := NewPreviewHandler(service, categService)
 			confirmHandler := NewConfirmHandler(service)
 
 			idr.Get("/preview", previewHandler.Preview)

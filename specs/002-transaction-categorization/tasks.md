@@ -50,7 +50,7 @@
 - [X] T007 Create database migration: `backend/db/migrations/005_create_merchant_dictionary_table.sql` with merchant_dictionary table (ID, merchant_name, category_id, source, confidence, match_type, frequency)
 - [X] T008 Create database migration: `backend/db/migrations/006_create_transaction_categories_table.sql` with transaction_categories table (ID, transaction_id, category_id, method, llm_provider, confidence, assigned_at)
 - [X] T009 Create database migration: `backend/db/migrations/007_create_category_stats_table.sql` with category_stats table (ID, user_id, category_id, period, total_spent, transaction_count, avg_transaction)
-- [ ] T010 [P] Generate sqlc stubs: Run `sqlc generate` for new tables in `backend/db/queries/`
+- [X] T010 [P] Generate sqlc stubs: Run `sqlc generate` for new tables in `backend/db/queries/`
 
 ### LLM Provider Abstraction (Phase 4+, Deferred)
 
@@ -88,7 +88,7 @@
 - [X] T027 [US1] Seed merchant dictionary in `backend/db/seeds/merchant_dictionary_seed.sql`: Insert ≥500 entries (Swiggy→Food, Amazon→Shopping, Uber→Transport, etc.) for Indian banks. Reference `categories-reference.md` for category IDs.
 - [X] T028 [US1] Implement rule-based categorization in `backend/internal/categorization/service.go`: CategorizeRule method using merchant dictionary exact + fuzzy matching (Levenshtein ≥85%), returns (category, confidence, explanation)
 - [X] T029 [US1] Implement /api/v1/transactions/categorize endpoint in `backend/internal/api/categorize.go`: POST handler accepting transactions array, returns categorizations with method/confidence/explanation. Include stats (rule_based_count, fuzzy_count, uncategorized_count)
-- [ ] T031 [US1] Integrate categorization into statement import flow in `backend/internal/api/statements.go`: Call categorization service during preview, return categories with transactions
+- [X] T031 [US1] Integrate categorization into statement import flow in `backend/internal/api/statements.go`: Call categorization service during preview, return categories with transactions
 
 ### Contract Tests for US1
 
@@ -100,8 +100,8 @@
 ### Frontend for US1
 
 - [X] T036 [P] [US1] Create CategoryBadge component in `frontend/src/components/CategoryBadge.tsx`: Display category name with color icon
-- [ ] T037 [P] [US1] Update TransactionPreview component in `frontend/src/pages/statements/PreviewModal.tsx`: Add category column showing badge + confidence + method
-- [ ] T038 [US1] Update StatementUpload flow in `frontend/src/pages/statements/UploadPage.tsx`: Call /api/categorize before preview, display categories to user
+- [X] T037 [P] [US1] Update TransactionPreview component in `frontend/src/pages/statements/PreviewModal.tsx`: Add category column showing badge + confidence + method
+- [X] T038 [US1] Update StatementUpload flow in `frontend/src/pages/statements/UploadPage.tsx`: Call /api/categorize before preview, display categories to user
 
 **Checkpoint**: User Story 1 complete and independently testable. Transactions automatically categorized by merchant dictionary. MVP feature ready for deployment.
 

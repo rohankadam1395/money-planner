@@ -12,6 +12,8 @@ import (
 	"money-planner/backend/internal/api"
 	apimiddleware "money-planner/backend/internal/api/middleware"
 	"money-planner/backend/internal/auth"
+	"money-planner/backend/internal/categorization"
+	"money-planner/backend/internal/config"
 	dbpkg "money-planner/backend/internal/db"
 	"money-planner/backend/internal/db/migrations"
 	"money-planner/backend/internal/statement"
@@ -100,13 +102,27 @@ func main() {
 		statement.NewImportJobRepository(db.GetConnection()),
 	)
 
+	// Initialize categorization service
+	var categService *categorization.CategorizationService
+	categConfig, err := config.LoadMerchantsConfig()
+	if err != nil {
+		logger.WithError(err).Warn("failed to load merchants config, categorization disabled")
+	} else {
+		// Create merchant dictionary and confidence scorer
+		merchantDict := categorization.NewMerchantDictionary()
+		confidencer := categorization.NewConfidenceScorer()
+		categService = categorization.NewCategorizationService(merchantDict, confidencer)
+		config.LogConfig(categConfig)
+		logger.Info("categorization service initialized")
+	}
+
 	// Protected API routes
 	router.Route("/api", func(r chi.Router) {
 		authMiddleware := apimiddleware.NewAuthMiddleware(jwtSecret)
 		r.Use(authMiddleware.Handler)
 
 		// Setup statement routes
-		api.SetupRoutes(r, stmtService, logger)
+		api.SetupRoutes(r, stmtService, categService, logger)
 	})
 
 	// Start server

@@ -214,6 +214,7 @@ func (s *StatementService) ExtractTransactions(statementID string, fileContent [
 type PreviewResponse struct {
 	Transactions      []*Transaction        `json:"transactions"`
 	ValidationSummary *ValidationSummary    `json:"validation_summary"`
+	Categorization    interface{}           `json:"categorization,omitempty"`
 	Status            string                `json:"status"`
 	Message           string                `json:"message,omitempty"`
 }

@@ -76,6 +76,21 @@ func (h *RecategorizeHandler) HandleRecategorize(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// "uncategorized" is a special case - mark transaction as having no category
+	if req.NewCategoryID != "uncategorized" {
+		// Validate that the new category exists in the database
+		var testCat string
+		err = h.dbConn.QueryRowContext(r.Context(), `SELECT id FROM categories WHERE id = $1`, req.NewCategoryID).Scan(&testCat)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				middleware.WriteJSONError(w, http.StatusBadRequest, "new category not found", "INVALID_CATEGORY")
+			} else {
+				middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to validate new category", "DB_ERROR")
+			}
+			return
+		}
+	}
+
 	// Parse IDs
 	txnIDUUID, err := uuid.Parse(txnID)
 	if err != nil {
@@ -109,48 +124,65 @@ func (h *RecategorizeHandler) HandleRecategorize(w http.ResponseWriter, r *http.
 		oldCatName = "Uncategorized"
 	}
 
-	// Validate new category exists
 	var newCatName string
-	err = h.dbConn.QueryRowContext(ctx, `SELECT name FROM categories WHERE id = $1`, req.NewCategoryID).Scan(&newCatName)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			middleware.WriteJSONError(w, http.StatusBadRequest, "new category not found", "INVALID_CATEGORY")
-		} else {
+	if req.NewCategoryID == "uncategorized" {
+		newCatName = "Uncategorized"
+	} else {
+		// Get category name for real categories
+		err = h.dbConn.QueryRowContext(ctx, `SELECT name FROM categories WHERE id = $1`, req.NewCategoryID).Scan(&newCatName)
+		if err != nil {
 			middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to retrieve new category", "DB_ERROR")
+			return
 		}
-		return
 	}
 
 	userIDUUID, _ := uuid.Parse(userID)
-
-	// Insert or update transaction_categories
-	if !oldCatID.Valid {
-		// Uncategorized transaction - INSERT new category assignment
-		_, err = h.dbConn.ExecContext(ctx,
-			`INSERT INTO transaction_categories (user_id, transaction_id, category_id, method, confidence, assigned_by_user_id, updated_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-			userIDUUID, txnIDUUID, req.NewCategoryID, "manual", 1.0, userIDUUID,
-		)
-	} else {
-		// Already categorized - UPDATE existing assignment
-		_, err = h.dbConn.ExecContext(ctx,
-			`UPDATE transaction_categories SET category_id = $1, method = $2, confidence = $3, assigned_by_user_id = $4, updated_at = NOW()
-			 WHERE transaction_id = $5`,
-			req.NewCategoryID, "manual", 1.0, userIDUUID, txnIDUUID,
-		)
-	}
-
-	if err != nil {
-		middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to update transaction category", "DB_ERROR")
-		return
-	}
-
-	// Recalculate category stats for both old and new categories
 	period := time.Now().Format("2006-01")
-	if oldCatID.Valid {
-		h.updateCategoryStats(ctx, userIDUUID, oldCatID.String, period)
+
+	if req.NewCategoryID == "uncategorized" {
+		// Remove category assignment (set as uncategorized)
+		_, err = h.dbConn.ExecContext(ctx,
+			`DELETE FROM transaction_categories WHERE transaction_id = $1`,
+			txnIDUUID,
+		)
+		if err != nil {
+			middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to remove transaction category", "DB_ERROR")
+			return
+		}
+
+		// Recalculate stats for old category
+		if oldCatID.Valid {
+			h.updateCategoryStats(ctx, userIDUUID, oldCatID.String, period)
+		}
+	} else {
+		// Assign to a real category
+		if !oldCatID.Valid {
+			// Uncategorized transaction - INSERT new category assignment
+			_, err = h.dbConn.ExecContext(ctx,
+				`INSERT INTO transaction_categories (user_id, transaction_id, category_id, method, confidence, assigned_by_user_id, updated_at)
+				 VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+				userIDUUID, txnIDUUID, req.NewCategoryID, "manual", 1.0, userIDUUID,
+			)
+		} else {
+			// Already categorized - UPDATE existing assignment
+			_, err = h.dbConn.ExecContext(ctx,
+				`UPDATE transaction_categories SET category_id = $1, method = $2, confidence = $3, assigned_by_user_id = $4, updated_at = NOW()
+				 WHERE transaction_id = $5`,
+				req.NewCategoryID, "manual", 1.0, userIDUUID, txnIDUUID,
+			)
+		}
+
+		if err != nil {
+			middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to update transaction category", "DB_ERROR")
+			return
+		}
+
+		// Recalculate category stats for both old and new categories
+		if oldCatID.Valid {
+			h.updateCategoryStats(ctx, userIDUUID, oldCatID.String, period)
+		}
+		h.updateCategoryStats(ctx, userIDUUID, req.NewCategoryID, period)
 	}
-	h.updateCategoryStats(ctx, userIDUUID, req.NewCategoryID, period)
 
 	// Handle merchant dictionary learning if requested (T095)
 	if req.LearnCorrection {

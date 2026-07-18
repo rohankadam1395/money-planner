@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
 import UploadPage from './UploadPage';
 import { UploadProgress } from '@/components/UploadProgress';
 
@@ -109,6 +110,7 @@ export default function StatementsPage() {
 
   return (
     <>
+      <Navbar />
       <UploadPage onUploadStart={handleUploadStart} onUploadSuccess={handleUploadSuccess} onUploadError={handleUploadError} />
       <UploadProgress
         isLoading={uploadState.status !== 'idle'}

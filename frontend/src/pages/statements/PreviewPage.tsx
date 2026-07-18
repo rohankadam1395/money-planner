@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
+import Navbar from '@/components/Navbar';
 import { TransactionPreview } from '@/components/TransactionPreview';
 import { ValidationSummary } from '@/components/ValidationSummary';
 import {
@@ -149,8 +150,10 @@ export default function PreviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-100 py-8 px-4">
+        <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-1">
@@ -250,5 +253,6 @@ export default function PreviewPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

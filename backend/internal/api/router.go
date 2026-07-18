@@ -14,6 +14,10 @@ func SetupRoutes(
 	categService *categorization.CategorizationService,
 	logger *logrus.Logger,
 ) {
+	// Transaction categorization endpoint
+	categHandler := NewCategorizationHandler(categService)
+	router.Post("/transactions/categorize", categHandler.HandleCategorize)
+
 	router.Route("/statements", func(sr chi.Router) {
 		// List statements
 		listHandler := NewListHandler(service)

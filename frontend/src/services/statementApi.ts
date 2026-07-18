@@ -253,7 +253,7 @@ export const statementApi = {
         }>;
         stats: any;
       }>(
-        '/api/transactions/categorize',
+        '/api/v1/transactions/categorize',
         req,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},

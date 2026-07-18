@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '@/components/Navbar';
+import { statementApi } from '@/services/statementApi';
 
 interface Statement {
   statement_id: string;

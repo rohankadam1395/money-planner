@@ -126,9 +126,9 @@ func (h *RecategorizeHandler) HandleRecategorize(w http.ResponseWriter, r *http.
 	if !oldCatID.Valid {
 		// Uncategorized transaction - INSERT new category assignment
 		_, err = h.dbConn.ExecContext(ctx,
-			`INSERT INTO transaction_categories (transaction_id, user_id, category_id, method, confidence, assigned_by_user_id, created_at, updated_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
-			txnIDUUID, userIDUUID, req.NewCategoryID, "manual", 1.0, userIDUUID,
+			`INSERT INTO transaction_categories (user_id, transaction_id, category_id, method, confidence, assigned_by_user_id, updated_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+			userIDUUID, txnIDUUID, req.NewCategoryID, "manual", 1.0, userIDUUID,
 		)
 	} else {
 		// Already categorized - UPDATE existing assignment

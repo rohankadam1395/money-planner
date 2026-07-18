@@ -113,6 +113,31 @@ func main() {
 		confidencer := categorization.NewConfidenceScorer()
 		categService = categorization.NewCategorizationService(merchantDict, confidencer)
 		config.LogConfig(categConfig)
+
+		// Load merchants from database into memory
+		conn := db.GetConnection()
+		rows, err := conn.Query(`
+			SELECT m.merchant_name, c.name
+			FROM merchant_dictionary m
+			JOIN categories c ON m.category_id = c.id
+		`)
+		if err != nil {
+			logger.WithError(err).Warn("failed to load merchants from database")
+		} else {
+			defer rows.Close()
+			merchantCount := 0
+			for rows.Next() {
+				var merchantName, categoryName string
+				if err := rows.Scan(&merchantName, &categoryName); err != nil {
+					logger.WithError(err).Warn("failed to scan merchant row")
+					continue
+				}
+				merchantDict.Insert(merchantName, categoryName)
+				merchantCount++
+			}
+			logger.WithField("count", merchantCount).Info("merchants loaded into memory cache")
+		}
+
 		logger.Info("categorization service initialized")
 	}
 

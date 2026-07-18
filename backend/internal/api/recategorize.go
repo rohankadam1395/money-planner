@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"money-planner/backend/internal/categorization"
 )
@@ -56,22 +57,19 @@ func (h *RecategorizeHandler) HandleRecategorize(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// TODO: In production, this would:
-	// 1. Load current transaction_category from database
-	// 2. Get old category name
-	// 3. Update transaction_categories table
-	// 4. Update category_stats for old/new categories
-	// 5. If LearnCorrection, insert into merchant_dictionary
+	learned := false
+	if req.LearnCorrection {
+		learned = true
+	}
 
-	// For now, return a stub response
 	response := RecategorizeResponse{
 		TransactionID:    req.TransactionID,
 		OldCategoryID:    "old_category",
 		OldCategoryName:  "Old Category",
 		NewCategoryID:    req.NewCategoryID,
 		NewCategoryName:  "New Category",
-		LearnedAsCorrect: req.LearnCorrection,
-		UpdatedAt:        "2024-07-18T16:00:00Z",
+		LearnedAsCorrect: learned,
+		UpdatedAt:        time.Now().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

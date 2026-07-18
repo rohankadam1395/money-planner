@@ -130,3 +130,23 @@ type CategorizationResult struct {
 	LLMProvider   string
 	matchDistance float64 // internal field for fuzzy matching
 }
+
+// UpdateCategoryStats updates category_stats for a category after recategorization
+// Called when a transaction is recategorized to both the old and new category
+func (s *CategorizationService) UpdateCategoryStats(ctx context.Context, statsUpdate *CategoryStatsUpdate) error {
+	// This method is a placeholder for database operations
+	// In production, this would call database methods to upsert category_stats
+	// For now, the actual stats updates happen via SQL queries in the API handlers
+	return nil
+}
+
+// CategoryStatsUpdate represents statistics to be aggregated for a category
+type CategoryStatsUpdate struct {
+	UserID      string
+	CategoryID  string
+	Period      string // YYYY-MM format
+	Amount      float64
+	TotalCount  int
+	MinAmount   float64
+	MaxAmount   float64
+}

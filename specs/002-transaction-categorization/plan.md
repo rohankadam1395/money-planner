@@ -14,7 +14,7 @@ Transaction Categorization is Phase 2 of MoneyPlan AI. After Statement Import (P
 2. **LLM Fallback (P2)**: Configurable LLM provider (default: Ollama/Mistral 7B local; supports Claude, OpenAI, and future providers) for unknown merchants to infer category with confidence score (200-400ms)
 3. **User Control & Analytics (P3)**: Post-import recategorization, category-level spending views, audit trails
 
-**MVP Scope (Phase 2)**: Rule-based + Ollama LLM categorization with pluggable provider abstraction. Enables cost-free local categorization while preserving option to switch providers. Feature unblocks downstream analytics, budgeting, and AI insights.
+**MVP Scope (Phases 1-3)**: Rule-based categorization with merchant dictionary. Phase 4+ adds LLM fallback (Ollama, Claude, OpenAI) and analytics. Minimal MVP unblocks downstream analytics, budgeting, and AI insights with zero external API cost.
 
 ## Technical Context
 
@@ -71,15 +71,17 @@ Transaction Categorization is Phase 2 of MoneyPlan AI. After Statement Import (P
 
 ```text
 specs/002-transaction-categorization/
-├── plan.md              # This file
-├── research.md          # Phase 0 output (merchant dictionary sources, LLM accuracy, fuzzy matching)
-├── data-model.md        # Phase 1 output (Category, MerchantDictionary, TransactionCategory, CategoryStats)
-├── contracts/           # Phase 1 output (categorize, recategorize, analytics API schemas)
+├── plan.md                      # This file
+├── spec.md                      # Feature specification (user stories, requirements)
+├── categories-reference.md      # 10 predefined categories (names, colors, icons, examples)
+├── research.md                  # Phase 0 output (merchant dictionary sources, LLM accuracy, fuzzy matching)
+├── data-model.md                # Phase 1 output (Category, MerchantDictionary, TransactionCategory, CategoryStats)
+├── contracts/                   # Phase 1 output (categorize, recategorize, analytics API schemas)
 │   ├── categorize-endpoint.md
 │   ├── recategorize-endpoint.md
 │   └── category-analytics-endpoint.md
-├── quickstart.md        # Phase 1 output (validation: upload → categorize → preview → confirm → view)
-└── tasks.md             # Phase 2 output (/speckit-tasks command)
+├── quickstart.md                # Phase 1 output (validation: upload → categorize → preview → confirm → view)
+└── tasks.md                     # Phase 2 output (/speckit-tasks command; Phases 1-6 implementation tasks)
 ```
 
 ### Source Code (repository root)
@@ -149,8 +151,17 @@ frontend/
 
 ## Next Steps
 
-**Phase 0 (Research)**: Investigate merchant dictionary sources (Indian bank merchants, public datasets), LLM categorization accuracy benchmarks, fuzzy matching algorithms (Levenshtein distance, trie structures), confidence scoring strategies, Claude API categorization prompt engineering.
+**Phase 0 (Research)** — ✅ DONE: Research materials in `research.md`
 
-**Phase 1 (Design)**: Define data models (Category, MerchantDictionary, TransactionCategory, CategoryStats entities), API contracts (categorize endpoint with batch support, recategorize endpoint, analytics queries), merchant dictionary schema (name patterns, category mappings, sources), LLM prompt strategy, quickstart validation scenarios.
+**Phase 1 (Design)** — ✅ DONE: 
+- Data models defined in `data-model.md`
+- API contracts in `contracts/`
+- Merchant dictionary schema drafted in `categories-reference.md`
+- Quickstart scenarios in `quickstart.md`
 
-**Phase 2 (Tasks)**: Generate task breakdown for TDD-first implementation. Write contract tests first → then services → then endpoints → then UI integration. Merchant dictionary population task. LLM integration and error handling. Analytics views and filters.
+**Phase 2-6 (Implementation)** — IN PROGRESS: 
+- MVP (Phases 1-3): Rule-based categorization with merchant dictionary
+- Phases 4+: LLM integration, analytics, admin interface (deferred)
+- See `tasks.md` for complete task breakdown and dependencies
+
+**MVP Focus**: User uploads statement → automatically categorized by ≥500-merchant dictionary → categories shown in preview → persisted to DB → ready for downstream analytics/budgets.

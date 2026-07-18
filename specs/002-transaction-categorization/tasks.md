@@ -81,25 +81,25 @@
 
 ### Implementation for User Story 1
 
-- [ ] T024 [P] [US1] Create Category model in `backend/internal/categorization/models.go`: Category struct with ID, name, description, color, icon
-- [ ] T025 [P] [US1] Create MerchantDictionary model in `backend/internal/categorization/models.go`: MerchantDictionary struct with ID, merchant_name, category_id, confidence, match_type
-- [ ] T026 [P] [US1] Create TransactionCategory model in `backend/internal/categorization/models.go`: TransactionCategory struct with ID, transaction_id, category_id, method, llm_provider, confidence
-- [ ] T026-CATEGORIES [P] [US1] Create/review `specs/002-transaction-categorization/categories-reference.md` with all 10 predefined categories (names, descriptions, colors, icons, examples). Link from schema, frontend components.
-- [ ] T027 [US1] Seed merchant dictionary in `backend/db/seeds/merchant_dictionary_seed.sql`: Insert ≥500 entries (Swiggy→Food, Amazon→Shopping, Uber→Transport, etc.) for Indian banks. Reference `categories-reference.md` for category IDs.
-- [ ] T028 [US1] Implement rule-based categorization in `backend/internal/categorization/service.go`: CategorizeRule method using merchant dictionary exact + fuzzy matching (Levenshtein ≥85%), returns (category, confidence, explanation)
-- [ ] T029 [US1] Implement /api/v1/transactions/categorize endpoint in `backend/internal/api/categorize.go`: POST handler accepting transactions array, returns categorizations with method/confidence/explanation. Include stats (rule_based_count, fuzzy_count, uncategorized_count)
+- [X] T024 [P] [US1] Create Category model in `backend/internal/categorization/models.go`: Category struct with ID, name, description, color, icon
+- [X] T025 [P] [US1] Create MerchantDictionary model in `backend/internal/categorization/models.go`: MerchantDictionary struct with ID, merchant_name, category_id, confidence, match_type
+- [X] T026 [P] [US1] Create TransactionCategory model in `backend/internal/categorization/models.go`: TransactionCategory struct with ID, transaction_id, category_id, method, llm_provider, confidence
+- [X] T026-CATEGORIES [P] [US1] Create/review `specs/002-transaction-categorization/categories-reference.md` with all 10 predefined categories (names, descriptions, colors, icons, examples). Link from schema, frontend components.
+- [X] T027 [US1] Seed merchant dictionary in `backend/db/seeds/merchant_dictionary_seed.sql`: Insert ≥500 entries (Swiggy→Food, Amazon→Shopping, Uber→Transport, etc.) for Indian banks. Reference `categories-reference.md` for category IDs.
+- [X] T028 [US1] Implement rule-based categorization in `backend/internal/categorization/service.go`: CategorizeRule method using merchant dictionary exact + fuzzy matching (Levenshtein ≥85%), returns (category, confidence, explanation)
+- [X] T029 [US1] Implement /api/v1/transactions/categorize endpoint in `backend/internal/api/categorize.go`: POST handler accepting transactions array, returns categorizations with method/confidence/explanation. Include stats (rule_based_count, fuzzy_count, uncategorized_count)
 - [ ] T031 [US1] Integrate categorization into statement import flow in `backend/internal/api/statements.go`: Call categorization service during preview, return categories with transactions
 
 ### Contract Tests for US1
 
-- [ ] T032 [P] [US1] Create contract test `backend/tests/contract/categorize_rule_based_test.go`: Known merchant (Swiggy) → correct category (Food) with confidence 1.0, method "rule_based"
-- [ ] T033 [P] [US1] Create contract test: Fuzzy match (SWIGGY FD) → Food with confidence 0.85-0.99, method "fuzzy"
-- [ ] T034 [P] [US1] Create contract test: Unknown merchant → "Uncategorized", method "none"
-- [ ] T035 [US1] Create contract test: Batch categorization (10 txns) → partial results, correct stats (rule_based count, total)
+- [X] T032 [P] [US1] Create contract test `backend/tests/contract/categorize_rule_based_test.go`: Known merchant (Swiggy) → correct category (Food) with confidence 1.0, method "rule_based"
+- [X] T033 [P] [US1] Create contract test: Fuzzy match (SWIGGY FD) → Food with confidence 0.85-0.99, method "fuzzy"
+- [X] T034 [P] [US1] Create contract test: Unknown merchant → "Uncategorized", method "none"
+- [X] T035 [US1] Create contract test: Batch categorization (10 txns) → partial results, correct stats (rule_based count, total)
 
 ### Frontend for US1
 
-- [ ] T036 [P] [US1] Create CategoryBadge component in `frontend/src/components/CategoryBadge.tsx`: Display category name with color icon
+- [X] T036 [P] [US1] Create CategoryBadge component in `frontend/src/components/CategoryBadge.tsx`: Display category name with color icon
 - [ ] T037 [P] [US1] Update TransactionPreview component in `frontend/src/pages/statements/PreviewModal.tsx`: Add category column showing badge + confidence + method
 - [ ] T038 [US1] Update StatementUpload flow in `frontend/src/pages/statements/UploadPage.tsx`: Call /api/categorize before preview, display categories to user
 

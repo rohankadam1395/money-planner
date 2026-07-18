@@ -1,7 +1,7 @@
 -- T009: Create category_stats table for analytics
 CREATE TABLE IF NOT EXISTS category_stats (
-  id UUID PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES users(id),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(user_id),
   category_id UUID NOT NULL REFERENCES categories(id),
   period VARCHAR(10) NOT NULL,
   total_spent DECIMAL(12, 2) DEFAULT 0,

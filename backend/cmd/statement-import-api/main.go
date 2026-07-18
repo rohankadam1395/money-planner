@@ -200,7 +200,7 @@ func main() {
 	}
 
 	// Protected API routes
-	router.Route("/api", func(r chi.Router) {
+	router.Route("/api/v1", func(r chi.Router) {
 		authMiddleware := apimiddleware.NewAuthMiddleware(jwtSecret)
 		r.Use(authMiddleware.Handler)
 

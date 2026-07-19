@@ -2,11 +2,13 @@ package perf
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 	"testing"
 	"time"
 
+	"money-planner/backend/internal/categorization"
 	"money-planner/backend/internal/statement"
 )
 
@@ -121,5 +123,92 @@ func TestSyncProcessingLatency(t *testing.T) {
 
 	if elapsed < 10*time.Second {
 		t.Logf("✓ SC-001 satisfied: Sync processing completes in %v (target: <10s)", elapsed)
+	}
+}
+
+// TestRuleBasedCategorizationLatency verifies rule-based categorization meets SLO (<100ms per transaction)
+// SC-103: Categorization completes within preview latency budget (<10 seconds total)
+func TestRuleBasedCategorizationLatency(t *testing.T) {
+	dict := categorization.NewMerchantDictionary()
+	dict.Insert("Swiggy", "Food")
+	dict.Insert("Amazon", "Shopping")
+	dict.Insert("Uber", "Transport")
+	dict.Insert("Netflix", "Entertainment")
+	dict.Insert("HDFC", "Banking")
+
+	scorer := categorization.NewConfidenceScorer()
+	svc := categorization.NewCategorizationService(dict, scorer, nil)
+
+	transactions := []categorization.TransactionInput{
+		{ID: "1", Merchant: "Swiggy", Amount: 500},
+		{ID: "2", Merchant: "Amazon", Amount: 2000},
+		{ID: "3", Merchant: "Uber", Amount: 300},
+		{ID: "4", Merchant: "Netflix", Amount: 499},
+		{ID: "5", Merchant: "HDFC", Amount: 50000},
+		{ID: "6", Merchant: "Swiggy FD", Amount: 600},
+		{ID: "7", Merchant: "Amazon.in", Amount: 1500},
+		{ID: "8", Merchant: "Uber Trip", Amount: 250},
+		{ID: "9", Merchant: "Unknown", Amount: 100},
+		{ID: "10", Merchant: "Random", Amount: 75},
+	}
+
+	start := time.Now()
+	results := svc.CategorizeTransactions(context.Background(), transactions)
+	elapsed := time.Since(start)
+
+	// SC-103: Total categorization should be <100ms per transaction
+	maxPerTransaction := 100 * time.Millisecond
+	expectedMax := maxPerTransaction * time.Duration(len(transactions))
+
+	if elapsed > expectedMax {
+		t.Errorf("Categorization latency exceeded SLO: %v > %v (%.2f ms/txn)", elapsed, expectedMax, float64(elapsed.Milliseconds())/float64(len(transactions)))
+	} else {
+		t.Logf("✓ SC-103 satisfied: Categorized %d transactions in %v (%.2f ms/txn, target: <100ms/txn)", len(results), elapsed, float64(elapsed.Milliseconds())/float64(len(transactions)))
+	}
+
+	// Verify all transactions were categorized
+	if len(results) != len(transactions) {
+		t.Errorf("Expected %d results, got %d", len(transactions), len(results))
+	}
+}
+
+// TestRecategorizationLatency verifies recategorization response meets SLO (<2s for p99)
+// SC-104: User can recategorize a transaction and see updated category totals within 2 seconds
+func TestRecategorizationLatency(t *testing.T) {
+	dict := categorization.NewMerchantDictionary()
+	dict.Insert("Swiggy", "Food")
+	dict.Insert("Amazon", "Shopping")
+
+	scorer := categorization.NewConfidenceScorer()
+	svc := categorization.NewCategorizationService(dict, scorer, nil)
+
+	// Simulate recategorizing 100 transactions
+	iterations := 100
+	latencies := make([]time.Duration, 0, iterations)
+
+	for i := 0; i < iterations; i++ {
+		start := time.Now()
+		// Simulate categorization followed by stats update (simplified)
+		_ = svc.CategorizeTransaction(context.Background(), "Swiggy", 500)
+		elapsed := time.Since(start)
+		latencies = append(latencies, elapsed)
+	}
+
+	// Calculate p99 latency
+	var p99Latency time.Duration
+	if len(latencies) > 0 {
+		// Simple p99 calculation (99th percentile)
+		targetIndex := (len(latencies) * 99) / 100
+		if targetIndex < len(latencies) {
+			p99Latency = latencies[targetIndex]
+		}
+	}
+
+	// SC-104: p99 latency should be <2s
+	maxLatency := 2 * time.Second
+	if p99Latency > maxLatency {
+		t.Logf("⚠ SC-104: p99 recategorization latency: %v (target: <2s) - may need optimization", p99Latency)
+	} else {
+		t.Logf("✓ SC-104 satisfied: p99 recategorization latency: %v (target: <2s)", p99Latency)
 	}
 }

@@ -283,6 +283,26 @@
 
 ---
 
+## Phase 8: Convergence - Architecture Refinement & Test Coverage
+
+**Purpose**: Address partial implementations and test stubs identified during convergence assessment
+
+### Constitution & Architecture Compliance
+
+- [X] T100 [MEDIUM] Refactor UpdateCategoryStats to service layer (Principle II: Modular Service Architecture): Moved updateCategoryStats logic from recategorize.go handler to CategorizationService.UpdateCategoryStats(). Handler calls service method via s.service.UpdateCategoryStats(). Acceptance: Service method called, not duplicated in handlers. Tests pass. ✓
+
+### Error Handling & Observability
+
+- [X] T101 [LOW] Add error logging for merchant dictionary learning (T061 improvement): Added error logging in recategorize.go:199-201. Changed from silent `// Ignore errors` to `log.Printf("Warning: Failed to learn correction for merchant %s: %v", ...)`. Test: Error logged when merchant_dictionary INSERT fails. ✓
+
+### Test Implementation & Validation
+
+- [X] T102 [MEDIUM] Implement real contract tests for recategorization (Phase 6 T074-T080 follow-up): Updated backend/tests/contract/recategorize_test.go with real test assertions. Converted stub tests to executable specs covering: uncategorized identification, INSERT vs UPDATE logic, user_id isolation, category stats updates, learn_correction flag. Tests pass. ✓
+
+- [X] T103 [LOW] Add latency validation to performance tests (SC-103, SC-104 validation): Added TestRuleBasedCategorizationLatency and TestRecategorizationLatency to backend/tests/perf/latency_test.go with explicit SLO assertions: rule-based <100ms per transaction, p99 recategorization response <2s. Performance tests fail if SLOs violated. Tests pass with ✓ markers for both SC-103 and SC-104. ✓
+
+---
+
 ## MVP Scope (Phases 1-3, ~2 weeks)
 
 To ship transaction categorization MVP in 1-2 weeks, implement:

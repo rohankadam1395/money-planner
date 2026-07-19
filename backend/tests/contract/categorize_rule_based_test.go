@@ -13,7 +13,7 @@ func TestCategorizeKnownMerchant(t *testing.T) {
 	dict.Insert("Swiggy", "Food")
 
 	scorer := categorization.NewConfidenceScorer()
-	svc := categorization.NewCategorizationService(dict, scorer)
+	svc := categorization.NewCategorizationService(dict, scorer, nil)
 
 	result := svc.CategorizeTransaction(nil, "Swiggy", 500.0)
 
@@ -29,7 +29,7 @@ func TestCategorizeFuzzyMatch(t *testing.T) {
 	dict.Insert("Swiggy", "Food")
 
 	scorer := categorization.NewConfidenceScorer()
-	svc := categorization.NewCategorizationService(dict, scorer)
+	svc := categorization.NewCategorizationService(dict, scorer, nil)
 
 	result := svc.CategorizeTransaction(nil, "SWIGGY FD", 500.0)
 
@@ -46,7 +46,7 @@ func TestCategorizeUnknownMerchant(t *testing.T) {
 	dict.Insert("Swiggy", "Food")
 
 	scorer := categorization.NewConfidenceScorer()
-	svc := categorization.NewCategorizationService(dict, scorer)
+	svc := categorization.NewCategorizationService(dict, scorer, nil)
 
 	result := svc.CategorizeTransaction(nil, "UnknownShop XYZ", 500.0)
 
@@ -64,7 +64,7 @@ func TestCategorizeBatch(t *testing.T) {
 	dict.Insert("Uber", "Transport")
 
 	scorer := categorization.NewConfidenceScorer()
-	svc := categorization.NewCategorizationService(dict, scorer)
+	svc := categorization.NewCategorizationService(dict, scorer, nil)
 
 	transactions := []categorization.TransactionInput{
 		{ID: "1", Merchant: "Swiggy", Amount: 500},

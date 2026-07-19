@@ -113,7 +113,7 @@ func main() {
 		// Create merchant dictionary and confidence scorer
 		merchantDict := categorization.NewMerchantDictionary()
 		confidencer := categorization.NewConfidenceScorer()
-		categService = categorization.NewCategorizationService(merchantDict, confidencer)
+		categService = categorization.NewCategorizationService(merchantDict, confidencer, db.GetConnection())
 		config.LogConfig(categConfig)
 
 		// Initialize LLM provider if configured

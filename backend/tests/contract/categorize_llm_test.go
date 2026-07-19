@@ -16,7 +16,7 @@ func TestLLMCategorization(t *testing.T) {
 	merchantDict := categorization.NewMerchantDictionary()
 	confidencer := categorization.NewConfidenceScorer()
 
-	service := categorization.NewCategorizationService(merchantDict, confidencer).
+	service := categorization.NewCategorizationService(merchantDict, confidencer, nil).
 		WithLLMProvider(mockProvider)
 
 	merchantDict.Insert("Swiggy", "Food")
@@ -73,7 +73,7 @@ func TestGracefulDegradationOnLLMError(t *testing.T) {
 	merchantDict := categorization.NewMerchantDictionary()
 	confidencer := categorization.NewConfidenceScorer()
 
-	service := categorization.NewCategorizationService(merchantDict, confidencer).
+	service := categorization.NewCategorizationService(merchantDict, confidencer, nil).
 		WithLLMProvider(failingProvider)
 
 	result := service.CategorizeTransaction(context.Background(), "Unknown Merchant", 100.0)
@@ -103,7 +103,7 @@ func TestLLMProviderEnvVar(t *testing.T) {
 	merchantDict := categorization.NewMerchantDictionary()
 	confidencer := categorization.NewConfidenceScorer()
 
-	service := categorization.NewCategorizationService(merchantDict, confidencer).
+	service := categorization.NewCategorizationService(merchantDict, confidencer, nil).
 		WithLLMProvider(provider)
 
 	result := service.CategorizeTransaction(context.Background(), "Test Merchant", 100.0)

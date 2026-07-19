@@ -13,7 +13,7 @@ func TestLLMCategorizationEndToEnd(t *testing.T) {
 	merchantDict := categorization.NewMerchantDictionary()
 	confidencer := categorization.NewConfidenceScorer()
 
-	service := categorization.NewCategorizationService(merchantDict, confidencer).
+	service := categorization.NewCategorizationService(merchantDict, confidencer, nil).
 		WithLLMProvider(mockProvider)
 
 	merchantDict.Insert("Swiggy", "Food")
@@ -89,7 +89,7 @@ func TestBatchCategorizationWithLLM(t *testing.T) {
 	merchantDict := categorization.NewMerchantDictionary()
 	confidencer := categorization.NewConfidenceScorer()
 
-	service := categorization.NewCategorizationService(merchantDict, confidencer).
+	service := categorization.NewCategorizationService(merchantDict, confidencer, nil).
 		WithLLMProvider(mockProvider)
 
 	merchantDict.Insert("Swiggy", "Food")
@@ -145,7 +145,7 @@ func TestLLMConfidenceScores(t *testing.T) {
 	confidencer := categorization.NewConfidenceScorer()
 	mockProvider := providers.NewMockProvider("mock")
 
-	service := categorization.NewCategorizationService(merchantDict, confidencer).
+	service := categorization.NewCategorizationService(merchantDict, confidencer, nil).
 		WithLLMProvider(mockProvider)
 
 	merchantDict.Insert("Swiggy", "Food")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -177,11 +178,11 @@ func (h *RecategorizeHandler) HandleRecategorize(w http.ResponseWriter, r *http.
 			return
 		}
 
-		// Recalculate category stats for both old and new categories
+		// Recalculate category stats for both old and new categories via service layer
 		if oldCatID.Valid {
-			h.updateCategoryStats(ctx, userIDUUID, oldCatID.String, period)
+			h.service.UpdateCategoryStats(ctx, userID, oldCatID.String, period)
 		}
-		h.updateCategoryStats(ctx, userIDUUID, req.NewCategoryID, period)
+		h.service.UpdateCategoryStats(ctx, userID, req.NewCategoryID, period)
 	}
 
 	// Handle merchant dictionary learning if requested (T095)
@@ -191,12 +192,15 @@ func (h *RecategorizeHandler) HandleRecategorize(w http.ResponseWriter, r *http.
 			merchantName = merchantName[:255]
 		}
 
-		h.dbConn.ExecContext(ctx,
+		_, err := h.dbConn.ExecContext(ctx,
 			`INSERT INTO merchant_dictionary (id, merchant_name, category_id, source, confidence, match_type, frequency, created_at, updated_at)
 			 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
 			uuid.New(), merchantName, req.NewCategoryID, "user_correction", 100, "manual", 0,
 		)
-		// Ignore errors - learning is best-effort
+		if err != nil {
+			// Log error but don't fail the request - learning is best-effort
+			log.Printf("Warning: Failed to learn correction for merchant %s: %v", merchantName, err)
+		}
 	}
 
 	oldCatIDStr := ""

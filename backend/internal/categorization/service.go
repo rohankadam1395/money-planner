@@ -2,8 +2,11 @@ package categorization
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
+
+	"github.com/google/uuid"
 )
 
 // CategorizationService handles transaction categorization
@@ -11,14 +14,16 @@ type CategorizationService struct {
 	merchantDict *MerchantDictionary
 	confidencer  *ConfidenceScorer
 	llmProvider  LLMProvider
+	dbConn       *sql.DB
 }
 
 // NewCategorizationService creates a new categorization service
-func NewCategorizationService(merchantDict *MerchantDictionary, confidencer *ConfidenceScorer) *CategorizationService {
+func NewCategorizationService(merchantDict *MerchantDictionary, confidencer *ConfidenceScorer, dbConn *sql.DB) *CategorizationService {
 	return &CategorizationService{
 		merchantDict: merchantDict,
 		confidencer:  confidencer,
 		llmProvider:  nil,
+		dbConn:       dbConn,
 	}
 }
 
@@ -133,10 +138,47 @@ type CategorizationResult struct {
 
 // UpdateCategoryStats updates category_stats for a category after recategorization
 // Called when a transaction is recategorized to both the old and new category
-func (s *CategorizationService) UpdateCategoryStats(ctx context.Context, statsUpdate *CategoryStatsUpdate) error {
-	// This method is a placeholder for database operations
-	// In production, this would call database methods to upsert category_stats
-	// For now, the actual stats updates happen via SQL queries in the API handlers
+func (s *CategorizationService) UpdateCategoryStats(ctx context.Context, userID, categoryID, period string) error {
+	if s.dbConn == nil {
+		return fmt.Errorf("database connection not initialized")
+	}
+
+	var totalSpent sql.NullFloat64
+	var count sql.NullInt64
+	var avgTransaction sql.NullFloat64
+
+	// Calculate current stats from transactions
+	err := s.dbConn.QueryRowContext(ctx,
+		`SELECT COALESCE(SUM(t.amount), 0), COUNT(*), COALESCE(AVG(t.amount), 0)
+		 FROM transactions t
+		 JOIN transaction_categories tc ON t.transaction_id = tc.transaction_id
+		 WHERE t.user_id = $1 AND tc.category_id = $2 AND DATE_TRUNC('month', t.transaction_date::timestamp)::text LIKE $3 || '%'`,
+		userID, categoryID, period,
+	).Scan(&totalSpent, &count, &avgTransaction)
+
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error calculating category stats for user %s, category %s, period %s: %v", userID, categoryID, period, err)
+		return err
+	}
+
+	// Upsert into category_stats
+	_, err = s.dbConn.ExecContext(ctx,
+		`INSERT INTO category_stats (id, user_id, category_id, period, total_spent, transaction_count, average_transaction, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+		 ON CONFLICT(user_id, category_id, period) DO UPDATE SET
+		   total_spent = EXCLUDED.total_spent,
+		   transaction_count = EXCLUDED.transaction_count,
+		   average_transaction = EXCLUDED.average_transaction,
+		   updated_at = NOW()`,
+		uuid.New(), userID, categoryID, period,
+		totalSpent.Float64, count.Int64, avgTransaction.Float64,
+	)
+
+	if err != nil {
+		log.Printf("Error updating category_stats for user %s, category %s, period %s: %v", userID, categoryID, period, err)
+		return err
+	}
+
 	return nil
 }
 

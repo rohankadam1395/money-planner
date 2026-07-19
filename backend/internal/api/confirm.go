@@ -123,23 +123,46 @@ func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	period := time.Now().Format("2006-01")
 	txnCount := 0
 
+	// Separate transactions into provided and needing categorization
+	var needsCategorization []categorization.TransactionInput
+	var needsCatIndices []int // indices in transactions slice
+	for i, txn := range transactions {
+		if _, ok := categoryMap[txn.TransactionID]; !ok {
+			needsCategorization = append(needsCategorization, categorization.TransactionInput{
+				ID:       txn.TransactionID,
+				Merchant: txn.Merchant,
+				Amount:   txn.Amount,
+			})
+			needsCatIndices = append(needsCatIndices, i)
+		}
+	}
+
+	// Batch-categorize all transactions needing categorization (or empty array if all provided)
+	var categResults map[string]*categorization.CategorizationResult
+	categResults = make(map[string]*categorization.CategorizationResult)
+	if h.categService != nil && len(needsCategorization) > 0 {
+		results := h.categService.CategorizeTransactions(ctx, needsCategorization)
+		for j, idx := range needsCatIndices {
+			categResults[transactions[idx].TransactionID] = &results[j]
+		}
+	}
+
 	// Save categories and stats
 	if h.dbConn != nil {
-		fmt.Fprintf(os.Stderr, "DEBUG: Received %d categories in categoryMap\n", len(categoryMap))
+		fmt.Fprintf(os.Stderr, "DEBUG: Received %d categories in categoryMap, batch-categorized %d\n", len(categoryMap), len(categResults))
 		for _, txn := range transactions {
 			var categoryName string
 			var confidence float64
 			var method string
 
-			// Use provided category or categorize on backend
+			// Use provided category or batch-categorized result
 			if providedCat, ok := categoryMap[txn.TransactionID]; ok {
 				categoryName = providedCat.Name
 				confidence = providedCat.Confidence
 				method = providedCat.Method
 				fmt.Fprintf(os.Stderr, "DEBUG: Using provided category for %s: %s (confidence: %.2f, method: %s)\n", txn.TransactionID, categoryName, confidence, method)
-			} else if h.categService != nil {
-				// Fall back to backend categorization if not provided
-				result := h.categService.CategorizeTransaction(ctx, txn.Merchant, txn.Amount)
+			} else if result, ok := categResults[txn.TransactionID]; ok {
+				// Use batch-categorized result
 				categoryName = result.Category
 				confidence = result.Confidence
 				method = result.Method

@@ -172,6 +172,12 @@ func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 				method = "none"
 			}
 
+			// Skip persisting if uncategorized (no transaction_categories entry needed)
+			if categoryName == "Uncategorized" {
+				fmt.Fprintf(os.Stderr, "DEBUG: Skipping insert for uncategorized transaction %s\n", txn.TransactionID)
+				continue
+			}
+
 			// Get category ID from name
 			var categoryID string
 			err := h.dbConn.QueryRowContext(ctx,
@@ -187,8 +193,8 @@ func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if categoryID == "" {
-				fmt.Fprintf(os.Stderr, "DEBUG: Category '%s' not found, using uncategorized fallback\n", categoryName)
-				categoryID = "uncategorized" // fallback
+				fmt.Fprintf(os.Stderr, "DEBUG: Category '%s' not found, skipping transaction\n", categoryName)
+				continue
 			}
 
 			// Insert into transaction_categories

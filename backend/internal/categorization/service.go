@@ -123,6 +123,8 @@ func (s *CategorizationService) CategorizeTransactions(ctx context.Context, tran
 	results := make([]CategorizationResult, len(transactions))
 	var needsLLM []int // indices that still need LLM categorization
 
+	log.Printf("DEBUG: CategorizeTransactions called with %d transactions, llmProvider=%v", len(transactions), s.llmProvider != nil)
+
 	// First pass: resolve rule-based/fuzzy matches
 	for i, txn := range transactions {
 		results[i] = *s.resolveRuleBased(txn.Merchant, txn.Amount)
@@ -131,8 +133,11 @@ func (s *CategorizationService) CategorizeTransactions(ctx context.Context, tran
 		}
 	}
 
+	log.Printf("DEBUG: After rule-based/fuzzy: %d need LLM", len(needsLLM))
+
 	// If nothing needs LLM or no provider, return early
 	if len(needsLLM) == 0 || s.llmProvider == nil {
+		log.Printf("DEBUG: Returning early - needsLLM=%d, llmProvider=%v", len(needsLLM), s.llmProvider != nil)
 		return results
 	}
 
@@ -142,11 +147,13 @@ func (s *CategorizationService) CategorizeTransactions(ctx context.Context, tran
 	}
 
 	if batchProv, ok := s.llmProvider.(batchLLMProvider); ok {
+		log.Printf("DEBUG: Provider supports batch, calling CategorizeBatch with %d items", len(needsLLM))
 		s.categorizeBatch(ctx, batchProv, transactions, results, needsLLM)
 		return results
 	}
 
 	// Fallback: sequential single-transaction LLM calls (for providers that don't support batch)
+	log.Printf("DEBUG: Provider doesn't support batch, using sequential calls for %d items", len(needsLLM))
 	for _, i := range needsLLM {
 		results[i] = *s.CategorizeLLM(ctx, transactions[i].Merchant, transactions[i].Amount)
 	}

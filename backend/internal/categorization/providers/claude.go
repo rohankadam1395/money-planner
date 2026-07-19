@@ -50,6 +50,11 @@ func (p *ClaudeProvider) Name() string {
 	return "claude"
 }
 
+// CategorizeBatch is a stub for batch categorization using Claude
+// TODO: Implement actual Claude API batch calls when needed
+// This stub method satisfies the BatchLLMProvider interface if one is defined
+// (It mirrors the single-item stub behavior per item)
+
 // parseClaudeResponse parses Claude's JSON response
 func parseClaudeResponse(response string) (category string, confidence float64, reason string) {
 	// Look for JSON structure in response

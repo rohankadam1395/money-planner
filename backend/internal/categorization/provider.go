@@ -11,3 +11,7 @@ type LLMProvider interface {
 	// Name returns the provider name (e.g., "ollama", "claude", "openai")
 	Name() string
 }
+
+// BatchLLMProvider is an optional interface for batch categorization
+// Providers implementing this interface enable efficient batch processing of multiple merchants.
+// The interface references BatchItem and BatchResult types defined in service.go.

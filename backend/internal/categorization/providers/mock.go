@@ -1,6 +1,10 @@
 package providers
 
-import "context"
+import (
+	"context"
+
+	"money-planner/backend/internal/categorization"
+)
 
 // MockProvider implements LLMProvider for testing
 type MockProvider struct {
@@ -41,4 +45,28 @@ func (p *MockProvider) Categorize(ctx context.Context, merchant string, amount f
 // Name returns the provider name
 func (p *MockProvider) Name() string {
 	return p.name
+}
+
+// CategorizeBatch categorizes multiple transactions using the mock mapping
+func (p *MockProvider) CategorizeBatch(ctx context.Context, items []categorization.BatchItem) ([]categorization.BatchResult, error) {
+	results := make([]categorization.BatchResult, len(items))
+	for i, item := range items {
+		merchant := capitalize(item.Merchant)
+		if result, ok := p.mapping[merchant]; ok {
+			results[i] = categorization.BatchResult{
+				Category:    result.category,
+				Confidence:  result.confidence,
+				Explanation: "Mock categorization",
+				Err:         nil,
+			}
+		} else {
+			results[i] = categorization.BatchResult{
+				Category:    "Uncategorized",
+				Confidence:  0.0,
+				Explanation: "No mock mapping found",
+				Err:         nil,
+			}
+		}
+	}
+	return results, nil
 }

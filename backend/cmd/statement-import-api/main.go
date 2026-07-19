@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -129,12 +131,22 @@ func main() {
 				if ollamaModel == "" {
 					ollamaModel = "mistral"
 				}
-				provider := providers.NewOllamaProvider(ollamaURL, ollamaModel)
+				// Batch requests cover many merchants in a single prompt, so they take
+				// substantially longer than single-item calls. Default generously high;
+				// override via OLLAMA_TIMEOUT (seconds) if your hardware needs more.
+				ollamaTimeout := 120 * time.Second
+				if timeoutStr := os.Getenv("OLLAMA_TIMEOUT"); timeoutStr != "" {
+					if secs, err := strconv.Atoi(timeoutStr); err == nil && secs > 0 {
+						ollamaTimeout = time.Duration(secs) * time.Second
+					}
+				}
+				provider := providers.NewOllamaProviderWithTimeout(ollamaURL, ollamaModel, ollamaTimeout)
 				categService.WithLLMProvider(provider)
 				logger.WithFields(logrus.Fields{
 					"provider": "ollama",
 					"url":      ollamaURL,
 					"model":    ollamaModel,
+					"timeout":  ollamaTimeout,
 				}).Info("LLM provider initialized")
 
 			case "claude":

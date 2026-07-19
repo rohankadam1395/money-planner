@@ -205,38 +205,57 @@ func (s *CategorizationService) resolveRuleBased(merchant string, amount float64
 	}
 }
 
-// categorizeBatch calls the provider's batch method and maps results back by original index
-// batchProvider must implement CategorizeBatch(ctx, []BatchItem) ([]BatchResult, error)
+// llmBatchChunkSize caps how many merchants go into a single LLM prompt.
+// CPU-bound local models (e.g. Ollama without GPU) generate large structured
+// JSON responses very slowly; smaller chunks finish reliably where one huge
+// batch would time out. Chunks are processed sequentially since a single
+// local model instance has no benefit from concurrent requests.
+const llmBatchChunkSize = 5
+
+// categorizeBatch calls the provider's batch method in bounded-size chunks and maps
+// results back by original index. batchProvider must implement
+// CategorizeBatch(ctx, []BatchItem) ([]BatchResult, error)
 func (s *CategorizationService) categorizeBatch(ctx context.Context, batchProvider interface {
 	CategorizeBatch(ctx context.Context, items []BatchItem) ([]BatchResult, error)
 }, transactions []TransactionInput, results []CategorizationResult, needsLLM []int) {
-	// Build batch items for LLM
-	batchItems := make([]BatchItem, len(needsLLM))
-	for j, i := range needsLLM {
-		batchItems[j] = BatchItem{
-			Merchant: transactions[i].Merchant,
-			Amount:   transactions[i].Amount,
+	for start := 0; start < len(needsLLM); start += llmBatchChunkSize {
+		end := start + llmBatchChunkSize
+		if end > len(needsLLM) {
+			end = len(needsLLM)
 		}
-	}
+		chunk := needsLLM[start:end]
 
-	// Call batch categorization
-	batchResults, err := batchProvider.CategorizeBatch(ctx, batchItems)
-	if err != nil {
-		// On batch call error, degrade all needs-LLM indices to Uncategorized
-		log.Printf("Batch LLM categorization failed: %v", err)
-		for _, i := range needsLLM {
-			results[i] = CategorizationResult{
-				Category:   "Uncategorized",
-				Method:     "none",
-				Confidence: 0.0,
-				Reason:     fmt.Sprintf("LLM error (graceful degradation): %v", err),
+		batchItems := make([]BatchItem, len(chunk))
+		for j, i := range chunk {
+			batchItems[j] = BatchItem{
+				Merchant: transactions[i].Merchant,
+				Amount:   transactions[i].Amount,
 			}
 		}
-		return
-	}
 
-	// Map batch results back to original indices
-	for j, i := range needsLLM {
+		log.Printf("Categorizing LLM chunk %d-%d of %d", start, end, len(needsLLM))
+		batchResults, err := batchProvider.CategorizeBatch(ctx, batchItems)
+		if err != nil {
+			// On chunk error, degrade only this chunk's indices to Uncategorized
+			log.Printf("Batch LLM categorization failed for chunk %d-%d: %v", start, end, err)
+			for _, i := range chunk {
+				results[i] = CategorizationResult{
+					Category:   "Uncategorized",
+					Method:     "none",
+					Confidence: 0.0,
+					Reason:     fmt.Sprintf("LLM error (graceful degradation): %v", err),
+				}
+			}
+			continue
+		}
+
+		s.mapBatchResults(chunk, batchResults, results)
+	}
+}
+
+// mapBatchResults maps a chunk's batch results back to the original transaction indices
+func (s *CategorizationService) mapBatchResults(chunk []int, batchResults []BatchResult, results []CategorizationResult) {
+	for j, i := range chunk {
 		if j >= len(batchResults) {
 			// Short result array; degrade this item
 			results[i] = CategorizationResult{

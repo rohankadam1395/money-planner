@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,17 +24,27 @@ type OllamaProvider struct {
 
 // NewOllamaProvider creates a new Ollama provider
 func NewOllamaProvider(baseURL string, model string) *OllamaProvider {
+	return NewOllamaProviderWithTimeout(baseURL, model, 30*time.Second)
+}
+
+// NewOllamaProviderWithTimeout creates a new Ollama provider with a configurable HTTP timeout.
+// Batch requests covering many merchants in one prompt take substantially longer than
+// single-item requests, so callers should size this generously (e.g. 120s+) for batch use.
+func NewOllamaProviderWithTimeout(baseURL string, model string, timeout time.Duration) *OllamaProvider {
 	if baseURL == "" {
 		baseURL = "http://localhost:11434"
 	}
 	if model == "" {
 		model = "mistral"
 	}
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
 	return &OllamaProvider{
 		baseURL: baseURL,
 		model:   model,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: timeout,
 		},
 	}
 }
@@ -179,30 +190,39 @@ Transactions:
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	log.Printf("DEBUG: Sending batch request to %s (model=%s, %d items)", p.baseURL+"/api/generate", p.model, len(items))
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
+		log.Printf("DEBUG: Ollama batch request failed: %v", err)
 		return p.degradeAllItems(items, fmt.Sprintf("ollama request failed: %v", err)), nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		log.Printf("DEBUG: Ollama batch returned non-200 status %d: %s", resp.StatusCode, string(body))
 		return p.degradeAllItems(items, fmt.Sprintf("ollama returned status %d: %s", resp.StatusCode, string(body))), nil
 	}
 
 	var result map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Printf("DEBUG: Ollama batch decode error: %v", err)
 		return p.degradeAllItems(items, fmt.Sprintf("failed to decode response: %v", err)), nil
 	}
 
 	responseText, ok := result["response"].(string)
 	if !ok {
+		log.Printf("DEBUG: Ollama batch response missing 'response' field, got keys: %v", result)
 		return p.degradeAllItems(items, "invalid response format from ollama"), nil
 	}
+
+	log.Printf("DEBUG: Ollama batch raw response (%d chars): %s", len(responseText), responseText)
 
 	// Parse batch response
 	batchResults, parseErr := p.parseOllamaBatchResponse(responseText, len(items))
 	if parseErr != nil {
+		log.Printf("DEBUG: Ollama batch parse error: %v", parseErr)
 		return batchResults, nil // Already degraded by parser
 	}
 

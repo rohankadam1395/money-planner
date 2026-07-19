@@ -123,18 +123,44 @@ func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	period := time.Now().Format("2006-01")
 	txnCount := 0
 
-	// Separate transactions into provided and needing categorization
+	// Look up transactions already categorized from a prior confirm attempt (e.g. a
+	// partially-succeeded chunked LLM run) so we don't re-send them to the LLM or
+	// double-count their category_stats on retry.
+	alreadyCategorized := make(map[string]bool)
+	if h.dbConn != nil {
+		rows, err := h.dbConn.QueryContext(ctx,
+			`SELECT tc.transaction_id FROM transaction_categories tc
+			 JOIN transactions t ON t.transaction_id = tc.transaction_id
+			 WHERE t.statement_id = $1 AND tc.user_id = $2`,
+			statementID, userIDUUID,
+		)
+		if err == nil {
+			for rows.Next() {
+				var txnID string
+				if rows.Scan(&txnID) == nil {
+					alreadyCategorized[txnID] = true
+				}
+			}
+			rows.Close()
+		}
+	}
+
+	// Separate transactions into provided/already-persisted and needing categorization
 	var needsCategorization []categorization.TransactionInput
 	var needsCatIndices []int // indices in transactions slice
 	for i, txn := range transactions {
-		if _, ok := categoryMap[txn.TransactionID]; !ok {
-			needsCategorization = append(needsCategorization, categorization.TransactionInput{
-				ID:       txn.TransactionID,
-				Merchant: txn.Merchant,
-				Amount:   txn.Amount,
-			})
-			needsCatIndices = append(needsCatIndices, i)
+		if _, ok := categoryMap[txn.TransactionID]; ok {
+			continue
 		}
+		if alreadyCategorized[txn.TransactionID] {
+			continue
+		}
+		needsCategorization = append(needsCategorization, categorization.TransactionInput{
+			ID:       txn.TransactionID,
+			Merchant: txn.Merchant,
+			Amount:   txn.Amount,
+		})
+		needsCatIndices = append(needsCatIndices, i)
 	}
 
 	// Batch-categorize all transactions needing categorization (or empty array if all provided)

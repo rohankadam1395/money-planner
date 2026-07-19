@@ -214,6 +214,7 @@ func (s *StatementService) ExtractTransactions(statementID string, fileContent [
 type PreviewResponse struct {
 	Transactions      []*Transaction        `json:"transactions"`
 	ValidationSummary *ValidationSummary    `json:"validation_summary"`
+	Categorization    interface{}           `json:"categorization,omitempty"`
 	Status            string                `json:"status"`
 	Message           string                `json:"message,omitempty"`
 }
@@ -400,4 +401,18 @@ func (s *StatementService) GetTransactions(statementID string) ([]*Transaction, 
 		return nil, fmt.Errorf("invalid statement ID format")
 	}
 	return s.txnRepo.GetByStatement(id)
+}
+
+// DeleteStatement deletes a statement and its associated transactions
+func (s *StatementService) DeleteStatement(statementID uuid.UUID) error {
+	// Delete transactions first (which handles cascading to transaction_categories)
+	if err := s.txnRepo.DeleteByStatement(statementID); err != nil {
+		return fmt.Errorf("failed to delete transactions: %w", err)
+	}
+
+	if err := s.stmtRepo.Delete(statementID); err != nil {
+		return fmt.Errorf("failed to delete statement: %w", err)
+	}
+
+	return nil
 }

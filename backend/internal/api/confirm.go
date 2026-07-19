@@ -1,18 +1,25 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"time"
 
-	"money-planner/backend/internal/api/middleware"
-	"money-planner/backend/internal/statement"
+	"github.com/google/uuid"
 	"github.com/go-chi/chi/v5"
+	"money-planner/backend/internal/api/middleware"
+	"money-planner/backend/internal/categorization"
+	"money-planner/backend/internal/statement"
 )
 
 // ConfirmHandler handles statement import confirmation
 type ConfirmHandler struct {
-	service *statement.StatementService
+	service         *statement.StatementService
+	categService    *categorization.CategorizationService
+	dbConn          *sql.DB
 }
 
 // NewConfirmHandler creates a new confirm handler
@@ -22,6 +29,25 @@ func NewConfirmHandler(service *statement.StatementService) *ConfirmHandler {
 	}
 }
 
+// WithCategorization adds categorization service
+func (h *ConfirmHandler) WithCategorization(categService *categorization.CategorizationService, dbConn *sql.DB) *ConfirmHandler {
+	h.categService = categService
+	h.dbConn = dbConn
+	return h
+}
+
+// ConfirmRequest represents the confirm import request with categories
+type ConfirmRequest struct {
+	StatementID  string `json:"statement_id"`
+	Confirmed    bool   `json:"confirmed"`
+	Transactions []struct {
+		TransactionID string `json:"transaction_id"`
+		CategoryName  string `json:"category_name"`
+		Confidence    float64 `json:"confidence"`
+		Method        string `json:"method"`
+	} `json:"transactions,omitempty"`
+}
+
 // Confirm handles POST /api/statements/{id}/confirm
 func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -29,35 +55,208 @@ func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user ID from context (verify authentication)
-	_, err := middleware.GetUserID(r)
+	userID, err := middleware.GetUserID(r)
 	if err != nil {
 		middleware.WriteJSONError(w, http.StatusUnauthorized, "user not authenticated", "UNAUTHORIZED")
 		return
 	}
 
-	// Get statement ID from URL
 	statementID := chi.URLParam(r, "id")
 	if statementID == "" {
 		middleware.WriteJSONError(w, http.StatusBadRequest, "statement ID is required", "MISSING_STATEMENT_ID")
 		return
 	}
 
-	// TODO: In production:
-	// 1. Fetch statement from database
-	// 2. Verify ownership (user_id matches authenticated user)
-	// 3. Check status (should be PENDING or READY)
-	// 4. Fetch previously extracted/previewed transactions
-	// 5. Call service.ConfirmImport() to persist
-	// 6. Update statement status to SUCCESS
-	// 7. Return confirmation response
+	// Parse request body
+	var req ConfirmRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		middleware.WriteJSONError(w, http.StatusBadRequest, "invalid request body", "INVALID_REQUEST")
+		return
+	}
 
-	// For now, return placeholder response
+	ctx := r.Context()
+
+	// Fetch statement from database
+	stmt, err := h.service.GetStatement(statementID)
+	if err != nil {
+		middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to fetch statement", "DB_ERROR")
+		return
+	}
+
+	if stmt == nil {
+		middleware.WriteJSONError(w, http.StatusNotFound, "statement not found", "NOT_FOUND")
+		return
+	}
+
+	// Verify ownership
+	if stmt.UserID.String() != userID {
+		middleware.WriteJSONError(w, http.StatusForbidden, "access denied", "FORBIDDEN")
+		return
+	}
+
+	// Fetch transactions for this statement
+	transactions, err := h.service.GetTransactions(statementID)
+	if err != nil {
+		middleware.WriteJSONError(w, http.StatusInternalServerError, "failed to fetch transactions", "DB_ERROR")
+		return
+	}
+
+	// Build category map from request
+	categoryMap := make(map[string]struct {
+		Name       string
+		Confidence float64
+		Method     string
+	})
+	for _, txn := range req.Transactions {
+		categoryMap[txn.TransactionID] = struct {
+			Name       string
+			Confidence float64
+			Method     string
+		}{
+			Name:       txn.CategoryName,
+			Confidence: txn.Confidence,
+			Method:     txn.Method,
+		}
+	}
+
+	userIDUUID, _ := uuid.Parse(userID)
+	period := time.Now().Format("2006-01")
+	txnCount := 0
+
+	// Look up transactions already categorized from a prior confirm attempt (e.g. a
+	// partially-succeeded chunked LLM run) so we don't re-send them to the LLM or
+	// double-count their category_stats on retry.
+	alreadyCategorized := make(map[string]bool)
+	if h.dbConn != nil {
+		rows, err := h.dbConn.QueryContext(ctx,
+			`SELECT tc.transaction_id FROM transaction_categories tc
+			 JOIN transactions t ON t.transaction_id = tc.transaction_id
+			 WHERE t.statement_id = $1 AND tc.user_id = $2`,
+			statementID, userIDUUID,
+		)
+		if err == nil {
+			for rows.Next() {
+				var txnID string
+				if rows.Scan(&txnID) == nil {
+					alreadyCategorized[txnID] = true
+				}
+			}
+			rows.Close()
+		}
+	}
+
+	// Separate transactions into provided/already-persisted and needing categorization
+	var needsCategorization []categorization.TransactionInput
+	var needsCatIndices []int // indices in transactions slice
+	for i, txn := range transactions {
+		if _, ok := categoryMap[txn.TransactionID]; ok {
+			continue
+		}
+		if alreadyCategorized[txn.TransactionID] {
+			continue
+		}
+		needsCategorization = append(needsCategorization, categorization.TransactionInput{
+			ID:       txn.TransactionID,
+			Merchant: txn.Merchant,
+			Amount:   txn.Amount,
+		})
+		needsCatIndices = append(needsCatIndices, i)
+	}
+
+	// Batch-categorize all transactions needing categorization (or empty array if all provided)
+	var categResults map[string]*categorization.CategorizationResult
+	categResults = make(map[string]*categorization.CategorizationResult)
+	if h.categService != nil && len(needsCategorization) > 0 {
+		results := h.categService.CategorizeTransactions(ctx, needsCategorization)
+		for j, idx := range needsCatIndices {
+			categResults[transactions[idx].TransactionID] = &results[j]
+		}
+	}
+
+	// Save categories and stats
+	if h.dbConn != nil {
+		fmt.Fprintf(os.Stderr, "DEBUG: Received %d categories in categoryMap, batch-categorized %d\n", len(categoryMap), len(categResults))
+		for _, txn := range transactions {
+			var categoryName string
+			var confidence float64
+			var method string
+
+			// Use provided category or batch-categorized result
+			if providedCat, ok := categoryMap[txn.TransactionID]; ok {
+				categoryName = providedCat.Name
+				confidence = providedCat.Confidence
+				method = providedCat.Method
+				fmt.Fprintf(os.Stderr, "DEBUG: Using provided category for %s: %s (confidence: %.2f, method: %s)\n", txn.TransactionID, categoryName, confidence, method)
+			} else if result, ok := categResults[txn.TransactionID]; ok {
+				// Use batch-categorized result
+				categoryName = result.Category
+				confidence = result.Confidence
+				method = result.Method
+			} else {
+				categoryName = "Uncategorized"
+				confidence = 0.0
+				method = "none"
+			}
+
+			// Skip persisting if uncategorized (no transaction_categories entry needed)
+			if categoryName == "Uncategorized" {
+				fmt.Fprintf(os.Stderr, "DEBUG: Skipping insert for uncategorized transaction %s\n", txn.TransactionID)
+				continue
+			}
+
+			// Get category ID from name
+			var categoryID string
+			err := h.dbConn.QueryRowContext(ctx,
+				`SELECT id FROM categories WHERE name = $1`,
+				categoryName,
+			).Scan(&categoryID)
+
+			fmt.Fprintf(os.Stderr, "DEBUG: Looking up category '%s' - found: %v, ID: %s\n", categoryName, err == nil, categoryID)
+
+			if err != nil && err != sql.ErrNoRows {
+				fmt.Fprintf(os.Stderr, "DEBUG: Category lookup error for '%s': %v\n", categoryName, err)
+				continue
+			}
+
+			if categoryID == "" {
+				fmt.Fprintf(os.Stderr, "DEBUG: Category '%s' not found, skipping transaction\n", categoryName)
+				continue
+			}
+
+			// Insert into transaction_categories
+			_, err = h.dbConn.ExecContext(ctx,
+				`INSERT INTO transaction_categories
+				 (id, user_id, transaction_id, category_id, method, confidence, assigned_at, updated_at)
+				 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+				 ON CONFLICT (transaction_id) DO UPDATE SET
+				 category_id = $4, method = $5, confidence = $6, updated_at = NOW()`,
+				uuid.New(), userIDUUID, txn.TransactionID, categoryID, method, confidence,
+			)
+
+			if err == nil {
+				txnCount++
+
+				// Update category_stats
+				h.dbConn.ExecContext(ctx,
+					`INSERT INTO category_stats
+					 (id, user_id, category_id, period, total_spent, transaction_count, average_transaction, created_at, updated_at)
+					 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+					 ON CONFLICT (user_id, category_id, period) DO UPDATE SET
+					 total_spent = category_stats.total_spent + $5,
+					 transaction_count = category_stats.transaction_count + 1,
+					 average_transaction = (category_stats.total_spent + $5) / (category_stats.transaction_count + 1),
+					 updated_at = NOW()`,
+					uuid.New(), userIDUUID, categoryID, period, txn.Amount, 1, txn.Amount,
+				)
+			}
+		}
+	}
+
 	confirmResp := &statement.ConfirmImportResponse{
 		StatementID:      statementID,
 		Status:           "SUCCESS",
-		TransactionCount: 0,
-		Message:          "Statement confirmed (placeholder response)",
+		TransactionCount: txnCount,
+		Message:          fmt.Sprintf("%d transactions confirmed and categorized", txnCount),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

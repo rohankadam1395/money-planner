@@ -22,6 +22,8 @@ func NewCSVParser() *CSVParser {
 
 // ParseCSV parses a CSV file and extracts transactions
 func (p *CSVParser) ParseCSV(data io.Reader) ([]*RawTransaction, error) {
+	p.columnMapping = make(map[string]int)
+
 	reader := csv.NewReader(data)
 
 	// Read header
@@ -108,6 +110,12 @@ func (p *CSVParser) mapHeaders(header []string) error {
 		if normalized == "balance" {
 			p.columnMapping["balance"] = i
 		}
+
+		if strings.Contains(normalized, "type") && !strings.Contains(normalized, "date") {
+			if _, exists := p.columnMapping["type"]; !exists {
+				p.columnMapping["type"] = i
+			}
+		}
 	}
 
 	// Check that we found required fields
@@ -167,6 +175,9 @@ func (p *CSVParser) parseRow(record []string) (*RawTransaction, error) {
 		amount, err = parseAmount(amountStr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid amount: %w", err)
+		}
+		if amount < 0 {
+			amount = -amount
 		}
 
 		typeStr := p.getField(record, "type")

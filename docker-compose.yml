@@ -1,68 +1,85 @@
 version: '3.8'
 
-# Local Development Compose
-# Start with: docker-compose up -d
-# Logs: docker-compose logs -f
-# Stop: docker-compose down
-
 services:
+  # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
-    container_name: money-planner-postgres-dev
+    image: postgres:16-alpine
+    container_name: money-planner-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: money_planner
+      POSTGRES_PASSWORD: dev_password
       POSTGRES_DB: money_planner
     ports:
       - "5432:5432"
     volumes:
-      # Persistent database across restarts
-      - postgres_data_dev:/var/lib/postgresql/data
-      # Init script runs on first startup only
-      - ./init-db.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d money_planner"]
+      test: ["CMD-SHELL", "pg_isready -U money_planner"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
     networks:
-      - money-planner-dev
-    # Auto-restart on failure for development
-    restart: unless-stopped
-    # Show SQL logs in development for debugging
-    command:
-      - "postgres"
-      - "-c"
-      - "log_statement=all"
-      - "-c"
-      - "log_duration=on"
+      - money-planner-network
 
-  # Optional: pgAdmin for database management
+  # Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: money-planner-backend
+    environment:
+      DATABASE_URL: postgres://money_planner:dev_password@postgres:5432/money_planner?sslmode=disable
+      JWT_SECRET: your_jwt_secret_key_here_change_in_production
+      PORT: 8080
+      # LLM Configuration - Ollama for transaction categorization
+      LLM_PROVIDER: ollama
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: mistral
+      OLLAMA_TIMEOUT: "90"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - money-planner-network
+    restart: unless-stopped
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: money-planner-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - money-planner-network
+    restart: unless-stopped
+
+  # pgAdmin for database management
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: money-planner-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
       - "5050:80"
-    volumes:
-      - pgadmin_data_dev:/var/lib/pgadmin
-    networks:
-      - money-planner-dev
-    restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
+    networks:
+      - money-planner-network
+    restart: unless-stopped
 
 volumes:
-  postgres_data_dev:
-    driver: local
-  pgadmin_data_dev:
-    driver: local
+  postgres_data:
 
 networks:
-  money-planner-dev:
+  money-planner-network:
     driver: bridge

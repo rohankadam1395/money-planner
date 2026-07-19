@@ -29,6 +29,8 @@ node_modules/
 dist/
 build/
 *.log
+stdout.log
+stderr.log
 pnpm-lock.yaml
 yarn.lock
 package-lock.json
@@ -52,3 +54,4 @@ Thumbs.db
 # OS
 .DS_Store
 Thumbs.db
+backend/statement-import-api

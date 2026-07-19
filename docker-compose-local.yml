@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: money-planner-db
+    environment:
+      POSTGRES_USER: money_planner
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: money_planner
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U money_planner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - money-planner-network
+
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: money-planner-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - money-planner-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  money-planner-network:
+    driver: bridge

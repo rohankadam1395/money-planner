@@ -36,14 +36,11 @@ func TestCSVParserHDFCFormat(t *testing.T) {
 		t.Errorf("Expected at least 5 transactions, got %d", len(transactions))
 	}
 
-	// Verify first meaningful transaction (salary credit)
-	if len(transactions) > 0 {
-		firstTxn := transactions[0]
-		if firstTxn.Amount != 50000.00 {
-			t.Errorf("Expected first transaction amount 50000, got %f", firstTxn.Amount)
-		}
-		if firstTxn.Type != "CREDIT" && firstTxn.Type != "" {
-			// May not be set by parser; that's validator responsibility
+	// Verify first meaningful transaction (salary credit on 05/01/2024)
+	if len(transactions) > 1 {
+		salaryTxn := transactions[1]
+		if salaryTxn.Amount != 50000.00 {
+			t.Errorf("Expected salary transaction amount 50000, got %f", salaryTxn.Amount)
 		}
 	}
 
@@ -120,8 +117,8 @@ func TestCSVParserDataIntegrity(t *testing.T) {
 	// Verify no data loss during parsing
 	if len(transactions) > 0 {
 		for i, txn := range transactions {
-			if txn.Description == "" {
-				t.Errorf("Transaction %d: empty description", i)
+			if txn.Merchant == "" {
+				t.Errorf("Transaction %d: empty merchant", i)
 			}
 			if txn.Amount == 0 && i < len(transactions) {
 				t.Logf("Transaction %d: zero amount (may be filtered)", i)

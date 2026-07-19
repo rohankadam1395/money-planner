@@ -6,6 +6,17 @@ import (
 	"github.com/google/uuid"
 )
 
+// ColumnMapping defines CSV column indices for a bank-specific statement format.
+type ColumnMapping struct {
+	DateColumn        int
+	MerchantColumn    int
+	AmountColumn      int
+	DebitColumn       int
+	CreditColumn      int
+	BalanceColumn     int
+	DescriptionColumn int
+}
+
 // Statement represents a bank statement file and its import metadata
 type Statement struct {
 	StatementID        uuid.UUID

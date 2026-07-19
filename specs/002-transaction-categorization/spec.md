@@ -26,45 +26,32 @@ A user uploads bank statements and the system automatically categorizes each tra
 
 ---
 
-### User Story 2 - LLM-Based Categorization for Unknown Merchants (Priority: P2)
+### User Story 2 - LLM-Based Categorization for Unknown Merchants (Priority: P2 - Phase 4+)
 
-System maintains a dictionary of known merchant→category mappings. For merchants not in the dictionary, system uses configurable LLM (default: Ollama running locally; supports future switching to other providers like Claude) to infer category based on merchant name, description, and transaction amount. User reviews and approves LLM suggestions in preview before import.
+**Deferred to Phase 4+ (outside MVP)**. System will maintain a dictionary of known merchant→category mappings. For merchants not in the dictionary, system uses configurable LLM (default: Ollama running locally; supports future switching to other providers like Claude) to infer category based on merchant name and transaction amount. User reviews and approves LLM suggestions in preview before import.
 
-**Why this priority**: Handles long-tail merchants and improves accuracy; enables future personalization and learning from corrections.
-
-**Independent Test**: Unknown merchant (e.g., "Aashish Restaurant Pvt Ltd") triggers LLM categorization and returns category with confidence score.
-
-**Acceptance Scenarios**:
-
-1. **Given** unknown merchant in statement, **When** preview renders, **Then** system shows LLM-suggested category with explanation
-2. **Given** user corrects LLM suggestion in preview, **When** import confirms, **Then** correction updates merchant dictionary for future use
-3. **Given** LLM API unavailable, **When** categorization fails, **Then** transaction categorizes as "Uncategorized" without blocking import
+**Why deferred**: Reduces MVP complexity; Phase 2 focuses on rule-based with merchant dictionary. Handles long-tail merchants post-MVP.
 
 ---
 
-### User Story 3 - Category Management & Analytics (Priority: P3)
+### User Story 3 - Category Management & Analytics (Priority: P3 - Phase 5+)
 
-User can view all transactions grouped by category, see category-level spending totals, and optionally recategorize transactions post-import. System exposes category data for downstream features (budgets, insights, dashboard).
+**Deferred to Phase 5+ (outside MVP)**. User will be able to view all transactions grouped by category, see category-level spending totals, and recategorize transactions post-import. System exposes category data for downstream features (budgets, insights, dashboard).
 
-**Why this priority**: Enables budget planning and spending analysis; completes the categorization feature.
-
-**Independent Test**: User views dashboard showing total spending by category and can drill down to see transactions in each category.
-
-**Acceptance Scenarios**:
-
-1. **Given** user navigates to "Spending by Category", **When** page loads, **Then** categories display with total amounts and transaction counts
-2. **Given** user clicks category, **When** category detail loads, **Then** all transactions in that category are listed with sort/filter options
-3. **Given** user recategorizes a transaction post-import, **When** change confirms, **Then** category totals update automatically
+**Why deferred**: Reduces MVP scope; Phase 2 focuses on rule-based categorization in preview only. Analytics added post-MVP.
 
 ---
 
-### Edge Cases
+### Edge Cases (Phase 2 MVP)
 
-- What if merchant name is empty or null?
-- What if transaction amount is negative (should credit transactions default to "Income")?
-- What if LLM categorization returns low confidence (<50%)—should it default to "Uncategorized"?
-- How are subscription services (Netflix, Spotify) categorized—Entertainment or Utilities?
-- Can users create custom categories, or only use predefined system categories?
+- What if merchant name is empty or null? → Categorize as "Uncategorized"
+- What if transaction amount is negative (credit/refund)? → If sender matches merchant dictionary, use that category; if not, check transaction type (credit→"Income", debit→normal flow)
+- How are subscription services (Netflix, Spotify) categorized? → Entertainment (predefined, see `categories-reference.md`)
+- What if rule-based matching has multiple possible categories? → Use highest-confidence match; if tie, default to first alphabetically
+
+**Phase 4+ edge cases** (deferred):
+- What if LLM categorization returns low confidence (<50%)—should it default to "Uncategorized"? → Yes (Phase 4+)
+- Can users create custom categories? → No (Phase 2); custom categories deferred to Phase 3+
 
 ## Requirements *(mandatory)*
 
@@ -109,13 +96,16 @@ User can view all transactions grouped by category, see category-level spending 
 
 ## Assumptions *(mandatory)*
 
-- LLM provider available (default: Ollama running locally; can be configured to other providers)
-- LLM provider accessible via HTTP API (e.g., Ollama API, OpenAI API, Claude API)
-- Merchant dictionary can be maintained and updated (via admin or learning)
-- User has LLM provider running and accessible locally or via configured endpoint (can be disabled for offline mode in future)
-- Predefined categories fixed for Phase 2 (custom categories deferred to Phase 3+)
-- Transaction amount available and reliable for LLM context
-- Initial merchant dictionary can be bootstrapped from public sources or manual curation
+- **MVP Scope (Phase 2)**: Rule-based categorization only. LLM provider integration deferred to Phase 4+.
+- Merchant dictionary can be maintained and updated via user corrections (learning); admin interface deferred to Phase 3+
+- 10 predefined categories are fixed for Phase 2 (custom categories deferred to Phase 3+); see `categories-reference.md` for full list
+- Transaction amount available and reliable (used by LLM in Phase 4+, not required for Phase 2)
+- Initial merchant dictionary can be bootstrapped from public sources or manual curation (~500 Indian bank merchants)
+- **Success Criteria Definitions**:
+  - SC-101 "major Indian banks": Primary 5 banks (HDFC, ICICI, SBI, Axis, Kotak) representing ~70% of Indian banking market
+  - SC-102 "≥75% accuracy": LLM accuracy validated against user corrections in preview (sample: ≥100 transactions post-import)
+  - SC-104 "within 2 seconds": p99 latency from recategorize API call to UI update (includes network + server processing)
+- LLM provider integration (Phase 4+): Provider available and accessible via HTTP API (Ollama local or Claude/OpenAI remote)
 
 ## Non-Functional Requirements
 

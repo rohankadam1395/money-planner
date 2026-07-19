@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '@/components/Navbar';
+import { statementApi } from '@/services/statementApi';
 
 interface Statement {
   statement_id: string;
@@ -13,32 +14,26 @@ interface Statement {
   uploaded_at: string;
 }
 
-interface ListResponse {
-  data: Statement[];
-  pagination: {
-    total: number;
-    limit: number;
-    offset: number;
-  };
-}
-
 export default function StatementsListPage() {
   const router = useRouter();
   const [statements, setStatements] = useState<Statement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStatements = async () => {
       try {
         const token = localStorage.getItem('authToken');
         if (!token) {
+          setError('No authentication token found');
+          setLoading(false);
           router.push('/auth/login');
           return;
         }
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/statements`,
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/statements`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -46,14 +41,18 @@ export default function StatementsListPage() {
           }
         );
 
+        const data = await response.json();
+        console.log('Statements API response:', { status: response.status, data });
+
         if (!response.ok) {
-          throw new Error('Failed to fetch statements');
+          throw new Error(data.message || `API Error: ${response.status}`);
         }
 
-        const data: ListResponse = await response.json();
         setStatements(data.data || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error fetching statements');
+        const message = err instanceof Error ? err.message : 'Error fetching statements';
+        console.error('Failed to fetch statements:', message);
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -61,6 +60,23 @@ export default function StatementsListPage() {
 
     fetchStatements();
   }, [router]);
+
+  const handleDelete = async (statementId: string) => {
+    if (!window.confirm('Are you sure you want to delete this statement? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingId(statementId);
+      await statementApi.deleteStatement(statementId);
+      setStatements(statements.filter((s) => s.statement_id !== statementId));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete statement');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -140,13 +156,20 @@ export default function StatementsListPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">{stmt.uploaded_at}</td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-6 py-4 text-sm flex gap-3">
                       <Link
                         href={`/statements/preview?id=${stmt.statement_id}`}
                         className="text-cyan-600 hover:text-cyan-700 font-bold hover:underline transition-all"
                       >
                         View
                       </Link>
+                      <button
+                        onClick={() => handleDelete(stmt.statement_id)}
+                        disabled={deletingId === stmt.statement_id}
+                        className="text-red-600 hover:text-red-700 font-bold hover:underline transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deletingId === stmt.statement_id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}

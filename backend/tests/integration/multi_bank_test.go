@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"money-planner/backend/internal/statement"
 )
@@ -108,9 +109,7 @@ func TestOverlappingDateRanges(t *testing.T) {
 // TestBankFormatNormalization tests that different bank formats are normalized to common schema
 func TestBankFormatNormalization(t *testing.T) {
 	hdfc := statement.NewCSVParser()
-	validator := statement.NewTransactionValidator()
 
-	// HDFC format (Date, Narration, Debit, Credit, Balance)
 	hdfcData := `Date,Narration,Debit,Credit,Balance
 05/01/2024,Test Transaction,1000.00,,9000.00`
 
@@ -124,11 +123,9 @@ func TestBankFormatNormalization(t *testing.T) {
 		t.Fatal("Expected transaction, got none")
 	}
 
-	// Verify transaction has all required fields (normalized)
 	txn := txns[0]
 
-	// Check required fields exist
-	if txn.Date == "" {
+	if txn.Date.IsZero() {
 		t.Errorf("Missing date field")
 	}
 
@@ -136,9 +133,18 @@ func TestBankFormatNormalization(t *testing.T) {
 		t.Errorf("Missing amount field")
 	}
 
-	// Validate the normalized transaction
-	if !validator.ValidateTransaction(&txn) {
-		t.Errorf("Normalized transaction failed validation")
+	periodStart := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	periodEnd := time.Date(2024, 12, 31, 0, 0, 0, 0, time.UTC)
+	result := statement.ValidateTransaction(&statement.Transaction{
+		TransactionDate:   txn.Date,
+		Merchant:          txn.Merchant,
+		Amount:            txn.Amount,
+		Type:              txn.Type,
+		Currency:          "INR",
+		AccountNumberHash: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+	}, periodStart, periodEnd)
+	if !result.Valid {
+		t.Errorf("Normalized transaction failed validation: %+v", result.Errors)
 	}
 
 	t.Logf("✓ Bank format normalization test passed: All required fields present after parsing")

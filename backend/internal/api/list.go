@@ -79,19 +79,17 @@ func (h *ListHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to response format
-	var data []StatementListResponse
-	if statements != nil {
-		for _, stmt := range statements {
-			data = append(data, StatementListResponse{
-				StatementID:      stmt.StatementID.String(),
-				FileName:         stmt.FileName,
-				FileFormat:       stmt.FileFormat,
-				BankCode:         stmt.BankCode,
-				TransactionCount: stmt.TransactionCount,
-				Status:           stmt.Status,
-				UploadedAt:       stmt.UploadedAt.Format("2006-01-02 15:04:05"),
-			})
-		}
+	data := make([]StatementListResponse, 0)
+	for _, stmt := range statements {
+		data = append(data, StatementListResponse{
+			StatementID:      stmt.StatementID.String(),
+			FileName:         stmt.FileName,
+			FileFormat:       stmt.FileFormat,
+			BankCode:         stmt.BankCode,
+			TransactionCount: stmt.TransactionCount,
+			Status:           stmt.Status,
+			UploadedAt:       stmt.UploadedAt.Format("2006-01-02 15:04:05"),
+		})
 	}
 
 	resp := &ListStatementsResponse{

@@ -3,6 +3,7 @@ package statement
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -257,6 +258,14 @@ func (tr *TransactionRepository) GetByUserAndBank(userID uuid.UUID, bankCode str
 }
 
 func (tr *TransactionRepository) DeleteByStatement(statementID uuid.UUID) error {
+	// First delete transaction_categories (foreign key constraint)
+	delCatQuery := `DELETE FROM transaction_categories
+	                 WHERE transaction_id IN (SELECT transaction_id FROM transactions WHERE statement_id = $1)`
+	if _, err := tr.db.Exec(delCatQuery, statementID); err != nil {
+		return fmt.Errorf("failed to delete transaction categories: %w", err)
+	}
+
+	// Then delete transactions
 	query := `DELETE FROM transactions WHERE statement_id = $1`
 	_, err := tr.db.Exec(query, statementID)
 	return err

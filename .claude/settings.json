@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "if": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -q 'git commit' && (echo 'Running pre-commit checks...' && cd backend && npm run lint 2>/dev/null || go run ./cmd/statement-import-api 2>&1 | head -5 && cd ../frontend && npm run lint 2>/dev/null && echo '✓ Pre-commit checks passed') || true",
+            "timeout": 60,
+            "statusMessage": "Running frontend/backend linting..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import { getCategoryStyle } from '@/constants/categories';
 
 // Types for statement operations
 export interface StatementUploadRequest {
@@ -32,6 +33,15 @@ export interface Transaction {
   imported_at: string;
   created_at: string;
   updated_at: string;
+  category?: {
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+    confidence: number;
+    method: 'rule_based' | 'fuzzy' | 'llm' | 'none';
+    llm_provider?: string;
+  };
 }
 
 export interface ValidationError {
@@ -56,6 +66,12 @@ export interface PreviewResponse {
 export interface ConfirmImportRequest {
   statement_id: string;
   confirmed: boolean;
+  transactions?: Array<{
+    transaction_id: string;
+    category_name: string;
+    confidence: number;
+    method: string;
+  }>;
 }
 
 export interface ConfirmImportResponse {
@@ -90,7 +106,7 @@ export const statementApi = {
 
     try {
       const response = await apiClient.post<StatementUploadResponse>(
-        '/api/statements/upload',
+        '/api/v1/statements/upload',
         formData,
         {
           headers: {
@@ -109,12 +125,12 @@ export const statementApi = {
     }
   },
 
-  // Get preview of extracted transactions
+  // Get preview of extracted transactions (rule-based categories only)
   getPreview: async (statementId: string): Promise<PreviewResponse> => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await apiClient.get<PreviewResponse>(
-        `/api/statements/${statementId}/preview`,
+        `/api/v1/statements/${statementId}/preview`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
@@ -135,7 +151,7 @@ export const statementApi = {
     try {
       const token = localStorage.getItem('authToken');
       const response = await apiClient.post<ConfirmImportResponse>(
-        `/api/statements/${request.statement_id}/confirm`,
+        `/api/v1/statements/${request.statement_id}/confirm`,
         { confirmed: request.confirmed },
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -155,7 +171,7 @@ export const statementApi = {
   // Get list of user's uploaded statements
   getStatements: async (limit = 10, offset = 0): Promise<Statement[]> => {
     try {
-      const response = await apiClient.get<Statement[]>('/api/statements', {
+      const response = await apiClient.get<Statement[]>('/api/v1/statements', {
         params: { limit, offset },
       });
       return response.data;
@@ -183,7 +199,7 @@ export const statementApi = {
       if (dateStart) params.date_start = dateStart;
       if (dateEnd) params.date_end = dateEnd;
 
-      const response = await apiClient.get<Transaction[]>('/api/transactions', {
+      const response = await apiClient.get<Transaction[]>('/api/v1/transactions', {
         params,
       });
       return response.data;
@@ -194,6 +210,99 @@ export const statementApi = {
         error.message ||
         'Failed to fetch transactions';
       throw new Error(errorMessage);
+    }
+  },
+
+  // Delete a statement
+  deleteStatement: async (statementId: string): Promise<void> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      await apiClient.delete(
+        `/api/v1/statements/${statementId}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to delete statement';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Categorize transactions
+  categorizeTransactions: async (transactions: Transaction[]): Promise<Transaction[]> => {
+    try {
+      const token = localStorage.getItem('authToken');
+
+      // Build request payload
+      const req = {
+        transactions: transactions.map((t) => ({
+          id: t.transaction_id,
+          merchant: t.merchant,
+          amount: t.amount,
+          timestamp: new Date(t.transaction_date).getTime() / 1000,
+        })),
+      };
+
+      const response = await apiClient.post<{
+        transactions: Array<{
+          id: string;
+          category: string;
+          confidence: number;
+          method: string;
+          explanation: string;
+          llm_provider?: string;
+        }>;
+        stats: any;
+      }>(
+        '/api/v1/transactions/categorize',
+        req,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+
+      // Map API response back to transactions with category details
+      const categorizeMap = new Map(
+        response.data.transactions.map((c) => [
+          c.id,
+          {
+            name: c.category,
+            confidence: c.confidence,
+            method: c.method as 'rule_based' | 'fuzzy' | 'llm' | 'none',
+            llm_provider: c.llm_provider,
+          },
+        ])
+      );
+
+      return transactions.map((t) => {
+        const categorization = categorizeMap.get(t.transaction_id);
+        if (categorization) {
+          const { color, icon } = getCategoryStyle(categorization.name);
+          // Generate category ID from name (e.g., "Food & Dining" -> "cat_food")
+          const categoryId = `cat_${categorization.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+          return {
+            ...t,
+            category: {
+              id: categoryId,
+              name: categorization.name,
+              color,
+              icon,
+              confidence: categorization.confidence,
+              method: categorization.method,
+              llm_provider: categorizeMap.get(t.transaction_id)?.llm_provider,
+            },
+          };
+        }
+        return t;
+      });
+    } catch (error: any) {
+      console.warn('Categorization failed, returning transactions without categories:', error);
+      return transactions;
     }
   },
 };

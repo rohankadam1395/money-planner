@@ -344,6 +344,25 @@ To ship transaction categorization MVP in 1-2 weeks, implement:
 
 ---
 
+## Phase 9: Convergence - Merchant Dictionary Completion
+
+**Purpose**: Complete merchant dictionary seed to meet FR-101 requirement for ≥500 major Indian bank merchants
+
+### Merchant Dictionary Expansion
+
+- [X] T104 [HIGH] Expand merchant_dictionary_seed.sql with ≥375 additional merchants per FR-101 (converge finding): Expanded from ~125 to **505 merchants** by adding:
+  - Bank transfers (HDFC, ICICI, SBI, Axis, Kotak branch codes, online transfer patterns)
+  - E-commerce variants (Amazon AWS, Amazon Prime Video, Flipkart Plus, Myntra, Ajio)
+  - Food & Dining (additional Zomato variants, Blinkit, local chain restaurants, quick commerce)
+  - Telecom/Utilities (Jio Prepaid, Vi, electricity boards state-wise, water suppliers, gas companies)
+  - Insurance & Healthcare (ICICI Prudential, HDFC Life, Apollo, Fortis, CVS Pharmacy)
+  - Education (BYJU'S variants, Udemy, Coursera, coaching center chains)
+  - Add fuzzy match examples for common misspellings (SWIGGY/Swiggy FD, AMAZON/amazon.in)
+  - Reference: specs/002-transaction-categorization/categories-reference.md for category IDs
+  - Acceptance: ≥500 total entries in merchant_dictionary; test SC-101 acceptance with sample statement showing 90% auto-categorization
+
+---
+
 ## Notes
 
 - **LLM Provider Switching**: After Phase 2 foundation, switching from Ollama to Claude/OpenAI requires only environment variable change (`LLM_PROVIDER=claude`). No code changes.

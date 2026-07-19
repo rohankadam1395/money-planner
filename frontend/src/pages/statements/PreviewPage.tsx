@@ -109,9 +109,9 @@ export default function PreviewPage() {
         .filter((t) => t.category?.name && t.category.name !== 'Uncategorized')
         .map((t) => ({
           transaction_id: t.transaction_id,
-          category_name: t.category.name,
-          confidence: t.category.confidence || 0,
-          method: t.category.method || 'none',
+          category_name: t.category!.name,
+          confidence: t.category!.confidence || 0,
+          method: t.category!.method || 'none',
         }));
 
       console.log(`Confirming with ${txnsToConfirm.length} categorized transactions (${preview.transactions.length - txnsToConfirm.length} will be LLM-categorized on backend)`);

@@ -38,13 +38,29 @@ func NewOllamaProvider(baseURL string, model string) *OllamaProvider {
 
 // Categorize categorizes a transaction using Ollama
 func (p *OllamaProvider) Categorize(ctx context.Context, merchant string, amount float64) (category string, confidence float64, explanation string, err error) {
-	prompt := fmt.Sprintf(`Categorize this transaction into ONE of: Food, Transport, Shopping, Entertainment, Bills, Healthcare, Education, Travel, Utilities, Other.
+	prompt := fmt.Sprintf(`You are a transaction categorization expert. Categorize this transaction into EXACTLY ONE of these categories:
+- Food & Dining
+- Shopping
+- Transport
+- Housing
+- Utilities
+- Entertainment
+- Income
+- Healthcare
+- Education
+- Miscellaneous
 
+Rules:
+1. You MUST choose from the list above. Do NOT invent categories.
+2. If uncertain, choose "Miscellaneous".
+3. Be consistent with the exact category names listed above.
+
+Transaction:
 Merchant: %s
 Amount: ₹%.2f
 
 Respond in this exact format:
-Category: [category name]
+Category: [category name from the list above]
 Confidence: [0.0-1.0]
 Reason: [brief reason]`, merchant, amount)
 
@@ -92,7 +108,14 @@ Reason: [brief reason]`, merchant, amount)
 		return "Uncategorized", 0.0, "Failed to parse Ollama response", nil
 	}
 
-	return category, confidence, reason, nil
+	// Validate and normalize the category
+	validCategory := normalizeCategory(category)
+	if validCategory == "" {
+		// LLM returned invalid category, default to Miscellaneous
+		return "Miscellaneous", confidence * 0.5, fmt.Sprintf("LLM returned invalid category '%s', defaulting to Miscellaneous", category), nil
+	}
+
+	return validCategory, confidence, reason, nil
 }
 
 // Name returns the provider name
@@ -134,4 +157,61 @@ func capitalize(s string) string {
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+// normalizeCategory validates and normalizes category names to match database categories
+func normalizeCategory(category string) string {
+	validCategories := []string{
+		"Food & Dining",
+		"Shopping",
+		"Transport",
+		"Housing",
+		"Utilities",
+		"Entertainment",
+		"Income",
+		"Healthcare",
+		"Education",
+		"Miscellaneous",
+	}
+
+	// Exact match
+	for _, valid := range validCategories {
+		if strings.EqualFold(category, valid) {
+			return valid
+		}
+	}
+
+	// Fuzzy mapping for common LLM mistakes
+	lowerCat := strings.ToLower(category)
+	mappings := map[string]string{
+		"food":           "Food & Dining",
+		"dining":         "Food & Dining",
+		"restaurant":     "Food & Dining",
+		"grocery":        "Shopping",
+		"retail":         "Shopping",
+		"taxi":           "Transport",
+		"uber":           "Transport",
+		"travel":         "Transport",
+		"electricity":    "Utilities",
+		"water":          "Utilities",
+		"bills":          "Utilities",
+		"movie":          "Entertainment",
+		"games":          "Entertainment",
+		"salary":         "Income",
+		"wages":          "Income",
+		"hospital":       "Healthcare",
+		"medicine":       "Healthcare",
+		"doctor":         "Healthcare",
+		"school":         "Education",
+		"course":         "Education",
+		"other":          "Miscellaneous",
+		"misc":           "Miscellaneous",
+	}
+
+	if normalized, ok := mappings[lowerCat]; ok {
+		return normalized
+	}
+
+	// If no match, return empty to indicate invalid
+	return ""
 }

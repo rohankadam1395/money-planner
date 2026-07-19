@@ -32,7 +32,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 export default function CategoryDashboard({ period }: CategoryDashboardProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [categories, setCategories] = useState<CategoryStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,9 +73,26 @@ export default function CategoryDashboard({ period }: CategoryDashboardProps) {
   }, [selectedPeriod]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (authLoading || !isAuthenticated) return;
     fetchCategories();
-  }, [isAuthenticated, fetchCategories]);
+  }, [isAuthenticated, authLoading, fetchCategories]);
+
+  // Show loading while auth initializes
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-8">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
+          <div className="inline-block p-3 bg-slate-100 rounded-full mb-4">
+            <svg className="w-8 h-8 text-slate-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Loading</h2>
+          <p className="text-gray-600 text-sm">Verifying your credentials...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

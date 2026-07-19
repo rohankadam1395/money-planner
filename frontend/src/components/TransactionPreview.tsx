@@ -8,6 +8,9 @@ interface TransactionPreviewProps {
   onSelectTransaction?: (transaction: Transaction) => void;
   onRecategorize?: (transactionId: string, newCategoryId: string, learnCorrection: boolean) => Promise<void>;
   categories?: any[];
+  selectedForEnhance?: Set<string>;
+  onToggleSelect?: (transactionId: string) => void;
+  onToggleSelectAll?: () => void;
 }
 
 export function TransactionPreview({
@@ -16,6 +19,9 @@ export function TransactionPreview({
   onSelectTransaction,
   onRecategorize,
   categories = [],
+  selectedForEnhance = new Set(),
+  onToggleSelect,
+  onToggleSelectAll,
 }: TransactionPreviewProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [recategorizeModal, setRecategorizeModal] = useState<{
@@ -55,6 +61,17 @@ export function TransactionPreview({
         <table className="w-full border-collapse">
           <thead className="bg-gray-100 sticky top-0">
             <tr>
+              {onToggleSelect && (
+                <th className="px-4 py-2 text-center text-sm font-semibold text-gray-700 border-b w-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedForEnhance.size === transactions.length && transactions.length > 0}
+                    onChange={onToggleSelectAll}
+                    className="w-4 h-4 cursor-pointer"
+                    title="Select all for enhancement"
+                  />
+                </th>
+              )}
               <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">
                 Date
               </th>
@@ -83,10 +100,29 @@ export function TransactionPreview({
               paginatedTransactions.map((txn, idx) => (
                 <tr
                   key={txn.transaction_id || idx}
-                  onClick={() => onSelectTransaction?.(txn)}
-                  className="border-b hover:bg-blue-50 transition-colors cursor-pointer"
+                  className={`border-b transition-colors ${
+                    selectedForEnhance.has(txn.transaction_id)
+                      ? 'bg-indigo-50'
+                      : 'hover:bg-blue-50'
+                  } cursor-pointer`}
                 >
-                  <td className="px-4 py-3 text-sm text-gray-900">
+                  {onToggleSelect && (
+                    <td className="px-4 py-3 text-center w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedForEnhance.has(txn.transaction_id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          onToggleSelect(txn.transaction_id);
+                        }}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                    </td>
+                  )}
+                  <td
+                    className="px-4 py-3 text-sm text-gray-900 cursor-pointer"
+                    onClick={() => onSelectTransaction?.(txn)}
+                  >
                     {formatDate(txn.transaction_date)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">

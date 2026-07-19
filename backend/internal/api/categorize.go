@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 
 	"money-planner/backend/internal/categorization"
 )
@@ -50,7 +52,9 @@ func (h *CategorizationHandler) HandleCategorize(w http.ResponseWriter, r *http.
 	}
 
 	// Categorize transactions
+	fmt.Fprintf(os.Stderr, "DEBUG: Starting categorization for %d transactions\n", len(txns))
 	results := h.service.CategorizeTransactions(r.Context(), txns)
+	fmt.Fprintf(os.Stderr, "DEBUG: Categorization completed, got %d results\n", len(results))
 
 	// Build response with statistics
 	responseResults := make([]categorization.CategorizeTransactionResult, len(results))

@@ -60,12 +60,21 @@ func (s *CategorizationService) CategorizeTransaction(ctx context.Context, merch
 		result.Confidence = confidence
 		result.Method = "fuzzy"
 		result.Reason = fmt.Sprintf("Fuzzy match: %s (distance: %.2f)", result.Category, result.matchDistance)
-		return result
+		// Accept fuzzy match if confidence is high (≥75%), skip expensive LLM call
+		if confidence >= 0.75 {
+			return result
+		}
+		// Low confidence fuzzy match - try LLM for better accuracy
 	}
 
 	// Try LLM categorization if available
 	if s.llmProvider != nil {
 		return s.CategorizeLLM(ctx, merchant, amount)
+	}
+
+	// Low-confidence fuzzy match with no LLM available
+	if result != nil {
+		return result
 	}
 
 	// No match found and no LLM available
@@ -109,13 +118,61 @@ func (s *CategorizationService) CategorizeLLM(ctx context.Context, merchant stri
 	}
 }
 
-// CategorizeTransactions categorizes multiple transactions
+// CategorizeTransactions categorizes multiple transactions (with LLM fallback)
 func (s *CategorizationService) CategorizeTransactions(ctx context.Context, transactions []TransactionInput) []CategorizationResult {
 	results := make([]CategorizationResult, len(transactions))
 	for i, txn := range transactions {
 		results[i] = *s.CategorizeTransaction(ctx, txn.Merchant, txn.Amount)
 	}
 	return results
+}
+
+// CategorizeTransactionsRuleBasedOnly categorizes using only exact + fuzzy matching (no LLM)
+func (s *CategorizationService) CategorizeTransactionsRuleBasedOnly(ctx context.Context, transactions []TransactionInput) []CategorizationResult {
+	results := make([]CategorizationResult, len(transactions))
+	for i, txn := range transactions {
+		results[i] = *s.categorizeRuleBasedOnly(ctx, txn.Merchant, txn.Amount)
+	}
+	return results
+}
+
+// categorizeRuleBasedOnly is the rule-based-only variant of CategorizeTransaction
+func (s *CategorizationService) categorizeRuleBasedOnly(ctx context.Context, merchant string, amount float64) *CategorizationResult {
+	if merchant == "" {
+		return &CategorizationResult{
+			Category:   "Uncategorized",
+			Method:     "none",
+			Confidence: 0.0,
+			Reason:     "Empty merchant name",
+		}
+	}
+
+	// Try exact match first
+	result := s.merchantDict.LookupExact(merchant)
+	if result != nil {
+		result.Confidence = s.confidencer.ScoreExactMatch()
+		result.Method = "rule_based"
+		result.Reason = fmt.Sprintf("Known merchant: %s", merchant)
+		return result
+	}
+
+	// Try fuzzy match (accept any fuzzy match, no LLM fallback)
+	result = s.merchantDict.LookupFuzzy(merchant)
+	if result != nil {
+		confidence := s.confidencer.ScoreFuzzyMatch(result.matchDistance)
+		result.Confidence = confidence
+		result.Method = "fuzzy"
+		result.Reason = fmt.Sprintf("Fuzzy match: %s (distance: %.2f)", result.Category, result.matchDistance)
+		return result
+	}
+
+	// No rule-based match found
+	return &CategorizationResult{
+		Category:   "Uncategorized",
+		Method:     "none",
+		Confidence: 0.0,
+		Reason:     fmt.Sprintf("No rule-based match for: %s", merchant),
+	}
 }
 
 // TransactionInput represents a transaction to be categorized

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +36,18 @@ func (h *ConfirmHandler) WithCategorization(categService *categorization.Categor
 	return h
 }
 
+// ConfirmRequest represents the confirm import request with categories
+type ConfirmRequest struct {
+	StatementID  string `json:"statement_id"`
+	Confirmed    bool   `json:"confirmed"`
+	Transactions []struct {
+		TransactionID string `json:"transaction_id"`
+		CategoryName  string `json:"category_name"`
+		Confidence    float64 `json:"confidence"`
+		Method        string `json:"method"`
+	} `json:"transactions,omitempty"`
+}
+
 // Confirm handles POST /api/statements/{id}/confirm
 func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -51,6 +64,13 @@ func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	statementID := chi.URLParam(r, "id")
 	if statementID == "" {
 		middleware.WriteJSONError(w, http.StatusBadRequest, "statement ID is required", "MISSING_STATEMENT_ID")
+		return
+	}
+
+	// Parse request body
+	var req ConfirmRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		middleware.WriteJSONError(w, http.StatusBadRequest, "invalid request body", "INVALID_REQUEST")
 		return
 	}
 
@@ -81,28 +101,70 @@ func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Build category map from request
+	categoryMap := make(map[string]struct {
+		Name       string
+		Confidence float64
+		Method     string
+	})
+	for _, txn := range req.Transactions {
+		categoryMap[txn.TransactionID] = struct {
+			Name       string
+			Confidence float64
+			Method     string
+		}{
+			Name:       txn.CategoryName,
+			Confidence: txn.Confidence,
+			Method:     txn.Method,
+		}
+	}
+
 	userIDUUID, _ := uuid.Parse(userID)
 	period := time.Now().Format("2006-01")
 	txnCount := 0
 
-	// Categorize and save each transaction
-	if h.categService != nil && h.dbConn != nil {
+	// Save categories and stats
+	if h.dbConn != nil {
+		fmt.Fprintf(os.Stderr, "DEBUG: Received %d categories in categoryMap\n", len(categoryMap))
 		for _, txn := range transactions {
-			// Categorize the transaction
-			result := h.categService.CategorizeTransaction(ctx, txn.Merchant, txn.Amount)
+			var categoryName string
+			var confidence float64
+			var method string
+
+			// Use provided category or categorize on backend
+			if providedCat, ok := categoryMap[txn.TransactionID]; ok {
+				categoryName = providedCat.Name
+				confidence = providedCat.Confidence
+				method = providedCat.Method
+				fmt.Fprintf(os.Stderr, "DEBUG: Using provided category for %s: %s (confidence: %.2f, method: %s)\n", txn.TransactionID, categoryName, confidence, method)
+			} else if h.categService != nil {
+				// Fall back to backend categorization if not provided
+				result := h.categService.CategorizeTransaction(ctx, txn.Merchant, txn.Amount)
+				categoryName = result.Category
+				confidence = result.Confidence
+				method = result.Method
+			} else {
+				categoryName = "Uncategorized"
+				confidence = 0.0
+				method = "none"
+			}
 
 			// Get category ID from name
 			var categoryID string
 			err := h.dbConn.QueryRowContext(ctx,
 				`SELECT id FROM categories WHERE name = $1`,
-				result.Category,
+				categoryName,
 			).Scan(&categoryID)
 
+			fmt.Fprintf(os.Stderr, "DEBUG: Looking up category '%s' - found: %v, ID: %s\n", categoryName, err == nil, categoryID)
+
 			if err != nil && err != sql.ErrNoRows {
+				fmt.Fprintf(os.Stderr, "DEBUG: Category lookup error for '%s': %v\n", categoryName, err)
 				continue
 			}
 
 			if categoryID == "" {
+				fmt.Fprintf(os.Stderr, "DEBUG: Category '%s' not found, using uncategorized fallback\n", categoryName)
 				categoryID = "uncategorized" // fallback
 			}
 
@@ -113,7 +175,7 @@ func (h *ConfirmHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 				 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
 				 ON CONFLICT (transaction_id) DO UPDATE SET
 				 category_id = $4, method = $5, confidence = $6, updated_at = NOW()`,
-				uuid.New(), userIDUUID, txn.TransactionID, categoryID, result.Method, result.Confidence,
+				uuid.New(), userIDUUID, txn.TransactionID, categoryID, method, confidence,
 			)
 
 			if err == nil {

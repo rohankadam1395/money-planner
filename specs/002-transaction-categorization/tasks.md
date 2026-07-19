@@ -152,11 +152,11 @@
 ### Implementation for User Story 3
 
 - [X] T056 [P] [US3] Create CategoryStats model in `backend/internal/categorization/models.go`: CategoryStats struct with user_id, category_id, period, total_spent, transaction_count, avg_transaction
-- [ ] T057 [US3] Implement category stats aggregation in `backend/internal/categorization/service.go`: UpdateCategoryStats method calculating totals per category per month (trigger on transaction confirm or recategorize)
+- [X] T057 [US3] Implement category stats aggregation in `backend/internal/categorization/service.go`: UpdateCategoryStats method calculating totals per category per month (trigger on transaction confirm or recategorize). ✓ Completed as part of T100 convergence task.
 - [X] T058 [US3] Create /api/v1/categories endpoint in `backend/internal/api/categories.go`: GET handler returning all categories with stats (period parameter, include_stats query param)
 - [X] T059 [US3] Create /api/v1/categories/{id}/transactions endpoint in `backend/internal/api/categories.go`: GET handler returning transactions in category with sort/filter (date_start, date_end, limit, sort_by)
 - [X] T060 [US3] Implement /api/v1/transactions/{id}/recategorize endpoint in `backend/internal/api/recategorize.go`: POST handler accepting new category_id, updates transaction_categories, updates category_stats, returns old/new category info
-- [ ] T061 [US3] Implement merchant dictionary learning in `backend/internal/categorization/service.go`: If learn_correction flag set, insert user's correction into merchant_dictionary with source "user_correction"
+- [X] T061 [US3] Implement merchant dictionary learning in `backend/internal/categorization/service.go`: If learn_correction flag set, insert user's correction into merchant_dictionary with source "user_correction". ✓ Completed and enhanced with error logging as part of T101 convergence task.
 - [X] T062 [US3] Add category queries in `backend/db/queries/categories.sql`: Queries for GetCategoryStats, GetTransactionsByCategory, UpdateCategoryStats
 
 ### Contract Tests for US3

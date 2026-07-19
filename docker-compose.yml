@@ -31,6 +31,11 @@ services:
       DATABASE_URL: postgres://money_planner:dev_password@postgres:5432/money_planner?sslmode=disable
       JWT_SECRET: your_jwt_secret_key_here_change_in_production
       PORT: 8080
+      # LLM Configuration - Ollama for transaction categorization
+      LLM_PROVIDER: ollama
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: mistral
+      OLLAMA_TIMEOUT: "60"
     ports:
       - "8080:8080"
     depends_on:

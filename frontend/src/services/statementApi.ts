@@ -66,6 +66,12 @@ export interface PreviewResponse {
 export interface ConfirmImportRequest {
   statement_id: string;
   confirmed: boolean;
+  transactions?: Array<{
+    transaction_id: string;
+    category_name: string;
+    confidence: number;
+    method: string;
+  }>;
 }
 
 export interface ConfirmImportResponse {
@@ -119,7 +125,7 @@ export const statementApi = {
     }
   },
 
-  // Get preview of extracted transactions
+  // Get preview of extracted transactions (rule-based categories only)
   getPreview: async (statementId: string): Promise<PreviewResponse> => {
     try {
       const token = localStorage.getItem('authToken');

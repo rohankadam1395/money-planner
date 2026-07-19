@@ -41,7 +41,7 @@ func SetupRoutes(
 
 		// Preview and confirm endpoints
 		sr.Route("/{id}", func(idr chi.Router) {
-			previewHandler := NewPreviewHandler(service, categService)
+			previewHandler := NewPreviewHandler(service, categService).WithDatabase(dbConn)
 			confirmHandler := NewConfirmHandler(service).WithCategorization(categService, dbConn)
 			deleteHandler := NewDeleteHandler(service)
 

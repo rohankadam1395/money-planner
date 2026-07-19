@@ -6,7 +6,6 @@ import { TransactionPreview } from '@/components/TransactionPreview';
 import { ValidationSummary } from '@/components/ValidationSummary';
 import {
   statementApi,
-  pollStatementPreview,
   PreviewResponse,
   Transaction,
 } from '@/services/statementApi';
@@ -21,6 +20,11 @@ export default function PreviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [processingProgress, setProcessingProgress] = useState<{ current: number; total: number } | null>(null);
+  const [isEnhancingAI, setIsEnhancingAI] = useState(false);
+  const [selectedForEnhance, setSelectedForEnhance] = useState<Set<string>>(new Set());
+  const [isImported, setIsImported] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Wait for auth to fully load before checking
@@ -28,8 +32,11 @@ export default function PreviewPage() {
       return;
     }
 
+    // Check token in localStorage as well (in case AuthContext hasn't synced yet)
+    const storedToken = localStorage.getItem('authToken');
+
     // Only redirect if auth is done loading and user is NOT authenticated
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !storedToken) {
       router.push('/auth/login');
       return;
     }
@@ -44,18 +51,37 @@ export default function PreviewPage() {
     const fetchPreview = async () => {
       try {
         setIsLoading(true);
-        // Poll for preview with up to 30 seconds timeout
-        const previewData = await pollStatementPreview(statementId, 30, 1000);
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          setError('Authentication token not found');
+          router.push('/auth/login');
+          return;
+        }
 
-        // Categorize transactions
-        const categorizedTransactions = await statementApi.categorizeTransactions(
-          previewData.transactions
-        );
+        // Poll for preview with progress updates
+        const maxAttempts = 30;
+        const delayMs = 1000;
+        let previewData: PreviewResponse | null = null;
 
-        setPreview({
-          ...previewData,
-          transactions: categorizedTransactions,
-        });
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          try {
+            previewData = await statementApi.getPreview(statementId);
+            break;
+          } catch (error) {
+            // Show progress during polling
+            setProcessingProgress({ current: attempt + 1, total: maxAttempts });
+            if (attempt === maxAttempts - 1) {
+              throw error;
+            }
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+        }
+
+        if (!previewData) {
+          throw new Error('Failed to fetch preview');
+        }
+
+        setPreview(previewData);
         setError(null);
       } catch (err: any) {
         const errorMessage = err.message || 'Failed to load statement preview';
@@ -63,6 +89,7 @@ export default function PreviewPage() {
         setPreview(null);
       } finally {
         setIsLoading(false);
+        setProcessingProgress(null);
       }
     };
 
@@ -70,18 +97,38 @@ export default function PreviewPage() {
   }, [statementId, authLoading, isAuthenticated, router]);
 
   const handleConfirmImport = async () => {
-    if (!statementId) return;
+    if (!statementId || !preview?.transactions) return;
 
     try {
       setIsConfirming(true);
+      setError(null);
+
+      // Send confirm with categorized transactions
+      const txnsToConfirm = preview.transactions.map((t) => ({
+        transaction_id: t.transaction_id,
+        category_name: t.category?.name || 'Uncategorized',
+        confidence: t.category?.confidence || 0,
+        method: t.category?.method || 'none',
+      }));
+
+      console.log('Confirming with transactions:', txnsToConfirm);
+
       const response = await statementApi.confirmImport({
         statement_id: statementId,
         confirmed: true,
+        transactions: txnsToConfirm,
       });
 
-      // Show success message and redirect to success page or statements list
-      alert(`✓ Successfully imported ${response.transactions_imported} transactions`);
-      router.push('/statements');
+      // Fetch fresh preview from DB to show saved categories
+      const freshPreview = await statementApi.getPreview(statementId);
+      setPreview(freshPreview);
+      setIsImported(true);
+      setSuccessMessage(
+        `✓ Successfully imported ${response.transactions_imported} transactions. Categories have been saved to the database.`
+      );
+
+      // Auto-clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {
       setError(err.message || 'Failed to confirm import');
     } finally {
@@ -93,8 +140,86 @@ export default function PreviewPage() {
     router.back();
   };
 
+  const handleEnhanceWithAI = async () => {
+    if (!preview?.transactions || selectedForEnhance.size === 0) return;
+
+    try {
+      setIsEnhancingAI(true);
+
+      // Get only selected transactions
+      const txnsToEnhance = preview.transactions.filter((t) =>
+        selectedForEnhance.has(t.transaction_id)
+      );
+
+      // Call categorization endpoint with LLM for selected transactions
+      const enhanced = await statementApi.categorizeTransactions(txnsToEnhance);
+
+      // Update preview by merging enhanced results
+      setPreview((current) => {
+        if (!current) return current;
+        const enhancedMap = new Map(
+          enhanced.map((t) => [t.transaction_id, t])
+        );
+        return {
+          ...current,
+          transactions: current.transactions.map((t) =>
+            enhancedMap.has(t.transaction_id) ? enhancedMap.get(t.transaction_id)! : t
+          ),
+        };
+      });
+
+      // Clear selection after successful enhancement
+      setSelectedForEnhance(new Set());
+    } catch (err: any) {
+      setError(err.message || 'Failed to enhance with AI');
+    } finally {
+      setIsEnhancingAI(false);
+    }
+  };
+
+  const toggleTransactionSelection = (transactionId: string) => {
+    const newSelected = new Set(selectedForEnhance);
+    if (newSelected.has(transactionId)) {
+      newSelected.delete(transactionId);
+    } else {
+      newSelected.add(transactionId);
+    }
+    setSelectedForEnhance(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (!preview?.transactions) return;
+    if (selectedForEnhance.size === preview.transactions.length) {
+      setSelectedForEnhance(new Set());
+    } else {
+      const allIds = new Set(preview.transactions.map((t) => t.transaction_id));
+      setSelectedForEnhance(allIds);
+    }
+  };
+
+  // Auth initialization loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
+          <div className="inline-block p-3 bg-indigo-100 rounded-full mb-4">
+            <svg className="w-8 h-8 text-indigo-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Authenticating</h2>
+          <p className="text-gray-600 text-sm">Verifying your credentials...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Loading state
   if (isLoading) {
+    const progressPercent = processingProgress
+      ? Math.round((processingProgress.current / processingProgress.total) * 100)
+      : 0;
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 flex items-center justify-center">
         <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
@@ -104,7 +229,26 @@ export default function PreviewPage() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Processing Statement</h2>
-          <p className="text-gray-600 text-sm">Extracting transactions from your statement...</p>
+          {processingProgress ? (
+            <>
+              <p className="text-gray-600 text-sm mb-4">
+                Extracting & categorizing transactions...
+                <br />
+                <span className="font-semibold text-indigo-600">
+                  {processingProgress.current} of {processingProgress.total}
+                </span>
+              </p>
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-2 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-indigo-500 to-blue-600 h-full transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+              <p className="text-gray-500 text-xs">{progressPercent}% complete</p>
+            </>
+          ) : (
+            <p className="text-gray-600 text-sm">Extracting transactions from your statement...</p>
+          )}
         </div>
       </div>
     );
@@ -166,6 +310,13 @@ export default function PreviewPage() {
 
         {/* Main Content */}
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 space-y-6 border border-white/40">
+          {/* Success Message */}
+          {successMessage && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-800 font-semibold">{successMessage}</p>
+            </div>
+          )}
+
           {/* Validation Summary */}
           <section>
             <h2 className="text-lg font-bold text-gray-900 mb-3">Validation Summary</h2>
@@ -210,36 +361,82 @@ export default function PreviewPage() {
 
           {/* Transactions Table */}
           <section>
-            <h2 className="text-lg font-bold text-gray-900 mb-3">
-              Extracted Transactions ({preview?.transactions?.length || 0})
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                Extracted Transactions ({preview?.transactions?.length || 0})
+              </h2>
+              <button
+                onClick={handleEnhanceWithAI}
+                disabled={isEnhancingAI || selectedForEnhance.size === 0}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                  isEnhancingAI
+                    ? 'bg-indigo-100 text-indigo-600 cursor-wait'
+                    : selectedForEnhance.size > 0
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'
+                      : 'bg-gray-300 text-gray-500'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isEnhancingAI ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div>
+                    Enhancing {selectedForEnhance.size}...
+                  </>
+                ) : (
+                  <>
+                    <span>✨ Enhance with AI ({selectedForEnhance.size})</span>
+                  </>
+                )}
+              </button>
+            </div>
             <TransactionPreview
               transactions={preview?.transactions || []}
               pageSize={15}
               onSelectTransaction={setSelectedTransaction}
+              selectedForEnhance={selectedForEnhance}
+              onToggleSelect={toggleTransactionSelection}
+              onToggleSelectAll={toggleSelectAll}
             />
           </section>
 
           {/* Action Buttons */}
           <div className="flex gap-4 pt-6 border-t-2 border-purple-100">
-            <button
-              onClick={handleConfirmImport}
-              disabled={isConfirming || (preview?.validation_summary?.invalid_transactions || 0) > 0}
-              className={`flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all transform ${
-                (preview?.validation_summary?.invalid_transactions || 0) > 0
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-400/50 hover:scale-105'
-              }`}
-            >
-              {isConfirming ? 'Confirming...' : '✓ Confirm & Import'}
-            </button>
-            <button
-              onClick={handleCancel}
-              disabled={isConfirming}
-              className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition-all font-semibold disabled:opacity-50 transform hover:scale-105"
-            >
-              Cancel
-            </button>
+            {isImported ? (
+              <>
+                <button
+                  onClick={() => router.push('/statements')}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-400/50 transition-all font-semibold transform hover:scale-105"
+                >
+                  → Go to Statements
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition-all font-semibold transform hover:scale-105"
+                >
+                  Go Back
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleConfirmImport}
+                  disabled={isConfirming || (preview?.validation_summary?.invalid_transactions || 0) > 0}
+                  className={`flex-1 px-6 py-3 rounded-xl font-semibold text-white transition-all transform ${
+                    (preview?.validation_summary?.invalid_transactions || 0) > 0
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-400/50 hover:scale-105'
+                  }`}
+                >
+                  {isConfirming ? 'Confirming...' : '✓ Confirm & Import'}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={isConfirming}
+                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition-all font-semibold disabled:opacity-50 transform hover:scale-105"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
 
           {(preview?.validation_summary?.invalid_transactions || 0) > 0 && (
